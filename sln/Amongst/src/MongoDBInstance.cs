@@ -5,15 +5,14 @@ using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Reflection;
-using System.Runtime.InteropServices;
 using System.Threading;
-#if NETSTANDARD1_6
 
+#if NETSTANDARD1_6
+using System.Runtime.InteropServices;
 #endif
 
 namespace Amongst
 {
-
     public class MongoDBInstance : IDisposable
     {
         private const string BIN_WIN32 = "mongodb-win32-x86_64-2008plus-3.4.4";

@@ -9,15 +9,9 @@ namespace Amongst.Test
 
         public UnitTestOutputHelper(ITestOutputHelper output) { _output = output; }
 
-        public void WriteLine(String message)
-        {
-            _output.WriteLine(message);   
-        }
+        public void WriteLine(String message) { _output.WriteLine(message); }
 
-        public void WriteLine(String format, params Object[] args)
-        {
-            _output.WriteLine(format, args);  
-        }
+        public void WriteLine(String format, params Object[] args) { _output.WriteLine(format, args); }
 
         public void Dispose() { }
     }
