@@ -8,7 +8,7 @@ Amongst is build with **Dotnet Core 1.1**.
 The Project is inspired by [Mongo2Go](https://github.com/Mongo2Go/Mongo2Go) which comes with a few issues.  
 
 Amongst is created to resolve those issues while [keeping it simple](https://en.wikipedia.org/wiki/You_aren%27t_gonna_need_it).
-Also with [XUnit](https://xunit.github.io/), Dotnet Core's default testing framekwork in mind. Nevertheless, it dosen't mean you are restricted to it.
+Also with [XUnit](https://xunit.github.io/), Dotnet Core's default testing framework in mind. Nevertheless, it dosen't mean you are restricted to it.
 
 ---
 ### Current features are:
