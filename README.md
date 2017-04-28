@@ -1,4 +1,4 @@
-# Amongst - A handy MongoDB (Integration) Testing Tool!
+Amongst - A handy MongoDB (Integration) Testing Tool!  
 ![Build status](https://ci.appveyor.com/api/projects/status/github/Johlandabee/Amongst?branch=develop&svg=true)  
 ---
 Amongst provides isolated MongoDB instances on **Windows**, **Linux** and **OSX** within your C# unit tests.  
