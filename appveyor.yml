@@ -1,5 +1,6 @@
 version: '0.1.0-build{build}'
 configuration:
+- Debug
 - Release
 environment:
   # Don't report back to the mothership
@@ -9,7 +10,7 @@ init:
 before_build:
 - appveyor-retry dotnet restore -v Minimal
 build_script:
-- dotnet build "sln\Amongst\Amongst.csproj" -c %CONFIGURATION% --no-dependencies --version-suffix %LABEL% -o artifacts\Mongest
+- dotnet build "sln\Amongst\Amongst.csproj" -c %CONFIGURATION% --no-dependencies --version-suffix %LABEL% -o ..\..\artifacts\%CONFIGURATION%\
 #test_script:
 #- dotnet test "sln\Amongst.Test\Amongst.Test.csproj" -c %CONFIGURATION%
 artifacts:
