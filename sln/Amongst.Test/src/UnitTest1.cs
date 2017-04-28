@@ -28,8 +28,7 @@ namespace Amongst.Test
 
             _outout = null;
             instances = Enumerable.Range(0, 10).Select(i => MongoDBInstance.Spawn(_outout)).ToList();
-            foreach (var i in instances)
-            {
+            foreach (var i in instances) {
                 i.Stop();
             }
         }
