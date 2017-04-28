@@ -1,6 +1,12 @@
+# IDE
 \.vs
 \.vscode
-**/bin/
-**/obj/
 *.user
+
+# Build
+sln/**/bin/
+sln/**/obj/
+artifacts/
+
+# Runtime
 instances/
