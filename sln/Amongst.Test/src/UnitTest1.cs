@@ -8,11 +8,11 @@ namespace Amongst.Test
 {
     public class UnitTest1
     {
-        private UnitTestOutputHelper _outout;
+        private XunitTestOutputHelper _outout;
 
         public UnitTest1(ITestOutputHelper output)
         {
-            _outout = new UnitTestOutputHelper(output);
+            _outout = new XunitTestOutputHelper(output);
         }
 
         [Fact]
