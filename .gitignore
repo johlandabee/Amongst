@@ -8,5 +8,8 @@ sln/**/bin/
 sln/**/obj/
 artifacts/
 
+# Test
+sln/Amongst.Test/TestResults/
+
 # Runtime
 instances/
