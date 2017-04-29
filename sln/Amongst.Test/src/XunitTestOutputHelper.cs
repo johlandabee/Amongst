@@ -1,4 +1,5 @@
 ﻿using Xunit.Abstractions;
+using Amongst.Output;
 
 namespace Amongst.Test
 {

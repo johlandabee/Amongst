@@ -1,30 +1,29 @@
-﻿using System;
-using System.IO;
+﻿using System.IO;
 
-namespace Amongst
+namespace Amongst.Output
 {
     public class TextFileOutputHelper : IMongoDBInstanceOutputHelper
     {
-        private readonly object Sync = new Object();
+        private readonly object _sync = new object();
         private readonly StreamWriter _writer;
 
         public TextFileOutputHelper(string path)
         {
-            lock (Sync) {
+            lock (_sync) {
                 _writer = new StreamWriter(File.Create(path));
             }
         }
 
         public void WriteLine(string message)
         {
-            lock (Sync) {
+            lock (_sync) {
                 _writer.WriteLine(message);
             }
         }
 
         public void WriteLine(string format, params object[] args)
         {
-            lock (Sync) {
+            lock (_sync) {
                 _writer.WriteLine(format, args);
             }
         }

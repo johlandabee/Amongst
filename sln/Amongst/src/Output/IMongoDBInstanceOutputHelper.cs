@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Amongst
+namespace Amongst.Output
 {
     public interface IMongoDBInstanceOutputHelper : IDisposable
     {

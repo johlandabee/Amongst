@@ -1,13 +1,11 @@
 ﻿using System.Net;
-using System.Net.Sockets;
-using System.Runtime.CompilerServices;
 
 namespace Amongst
 {
-    internal class MongoDBConnection
+    public class MongoDBConnection
     {
-        public IPAddress IP { get; }
-        public short Port { get; }
+        public IPAddress IP;
+        public short Port;
 
         public MongoDBConnection(IPAddress ip, short port)
         {
