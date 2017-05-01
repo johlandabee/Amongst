@@ -13,8 +13,16 @@ namespace Amongst.Test
 
         public MongoDBInstanceTest(ITestOutputHelper output)
         {
-            // Do not use OS dependent path seperator...
-            Environment.SetEnvironmentVariable("AMONGST_PATH", Path.GetFullPath("../../../../../"));
+            // Do not use OS dependent path seperator.
+            // Local build, back to project root.
+            var toolsPath = Path.GetFullPath("../../../../../");
+
+            var ci = Environment.GetEnvironmentVariable("CI");
+            if (ci != null)
+                // Back to project root from artifacts/ folder.
+                toolsPath = "../";
+            
+            Environment.SetEnvironmentVariable("AMONGST_PATH", toolsPath);
             Environment.SetEnvironmentVariable("AMONGST_ALLOW_MULTIPLE_RUNNERS", "");
 
             _outout = new XunitTestOutputHelper(output);
