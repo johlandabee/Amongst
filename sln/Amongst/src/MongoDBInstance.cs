@@ -74,6 +74,7 @@ namespace Amongst
             var dbPath = Path.Combine(instancePath, "data");
             Directory.CreateDirectory(dbPath);
             
+            // Use Replace(): Uri cannot be created from Unix path.
             var dbPathUri = dbPath.Replace("\\","/");
 
             var dbLogLevel = logVerbosity == LogVerbosity.Quiet 
