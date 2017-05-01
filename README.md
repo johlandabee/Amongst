@@ -15,7 +15,7 @@ Also with [XUnit](https://xunit.github.io/), Dotnet Core's default testing frame
  - Availability on all three major platforms: Windows, Linux and OSX.
  - Creating a disposable isolated MongoDB instace without any setup procedre.
  - Pass Mongo's output to your unit tests so it will show up in your ci build logs or write them on disk.
- - Data in- and export.
+ - Data import and export.
 
 **Note:** The **inMemory** storage engine **won't** be supported since it is only available in **MongoDB Enterprise**. 
 

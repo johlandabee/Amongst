@@ -73,8 +73,8 @@ namespace Amongst
 
             var dbPath = Path.Combine(instancePath, "data");
             Directory.CreateDirectory(dbPath);
-
-            var dbPathUri = new Uri(dbPath).AbsolutePath;
+            
+            var dbPathUri = dbPath.Replace("\\","/");
 
             var dbLogLevel = logVerbosity == LogVerbosity.Quiet 
                 ? "--quiet" : logVerbosity == LogVerbosity.Verbose 
@@ -149,7 +149,7 @@ namespace Amongst
 
             if (_instanceCount > 1)
                 _output.WriteLine(
-                    $"[{DateTime.Now}][Warning]: You already spawned {_instanceCount} instances of {nameof(MongoDBInstance)}. " +
+                    $"[{DateTime.Now}][Warning]: You already spawned {_instanceCount} instances of mongod. " +
                     "It is recommended to share a MongoDB instance across your tests using a fixture. " +
                     "You can read more about shared context within xUnit here: https://xunit.github.io/docs/shared-context.html " +
                     "If it is intentional, you can igore this Warning.");
@@ -248,9 +248,12 @@ namespace Amongst
 #if NETSTANDARD1_6
         private static void SetExecutableBit(string file)
         {
-            var attributes = File.GetAttributes(file);
+            // Workaround until dotnet core 2.0
+            var p = Process.Start("chmod", $"+x {file}");
+            p.WaitForExit();
 
-            File.SetAttributes(file, (FileAttributes)((uint) attributes | 0x80000000));
+            if(p.ExitCode != 0)
+                throw new CouldNotSetExecutableBit($"Could not set executable bit for {file}");
         }
 
         private static bool IsUnix()
@@ -313,7 +316,6 @@ namespace Amongst
 
             throw new NotImplementedException();
         }
-
 
         public void Stop()
         {
