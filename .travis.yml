@@ -1,9 +1,11 @@
+env:
+  - CONFIGURATION=Release
 language: csharp
 dist: trusty
 sudo: required
 mono: none
 dotnet: 1.0.3
 script:
-  - dotnet restore
-  - dotnet build sln/Amongst/ -f netstandard1.6 -c Release
-  - dotnet test sln/Amongst.Test/Amongst.Test.csproj -f netcoreapp1.1 -c Release -o ../../artifacts/
+  - dotnet restore -v Minimal
+  - dotnet build sln/Amongst/ -f netstandard1.6 -c $CONFIGURATION -o ../../artifacts/
+  - dotnet test sln/Amongst.Test/Amongst.Test.csproj -f netcoreapp1.1 -c $CONFIGURATION -o ../../artifacts/
