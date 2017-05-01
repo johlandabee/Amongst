@@ -15,7 +15,7 @@ namespace Amongst
 
         public override string ToString()
         {
-            return $"mongodb://{IP}:{Port}";
+            return $"mongodb://{IP}:{Port}/";
         }
     }
 }
