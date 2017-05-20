@@ -1,10 +1,14 @@
-# Amongst - MongoDB (Integration) Testing!  
+# Amongst - MongoDB (Integration) Testing!
 [![Build status](https://ci.appveyor.com/api/projects/status/github/Johlandabee/Amongst?branch=develop&svg=true)](https://ci.appveyor.com/project/Johlandabee/amongst)
 [![Build Status](https://travis-ci.org/Johlandabee/Amongst.svg?branch=develop)](https://travis-ci.org/Johlandabee/Amongst)
 
 Amongst provides isolated MongoDB instances on **Windows**, **Linux** and **OSX** within your C# unit tests.  
 It does so by wrapping around current **MongoDB 3.4.4** binaries while targeting **.NET 4.6** and **.NET Standard 1.6**.  
 Amongst is build with **Dotnet Core 1.1**. 
+
+<p align="center">
+  <img alt="Logo" src="https://cdn.rawgit.com/Johlandabee/Amongst/develop/logo.svg" />
+</p>
 
 The Project is inspired by [Mongo2Go](https://github.com/Mongo2Go/Mongo2Go) which comes with a few issues.  
 
