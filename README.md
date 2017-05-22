@@ -10,10 +10,10 @@ Amongst is build with **Dotnet Core 1.1**.
   <img alt="Logo" src="https://cdn.rawgit.com/Johlandabee/Amongst/develop/logo.svg" />
 </p>
 
-The Project is inspired by [Mongo2Go](https://github.com/Mongo2Go/Mongo2Go) which comes with a few issues.  
+The Project is inspired by [Mongo2Go](https://github.com/Mongo2Go/Mongo2Go).  
 
-Amongst is created to resolve those issues while [keeping it simple](https://en.wikipedia.org/wiki/You_aren%27t_gonna_need_it).
-Also with [XUnit](https://xunit.github.io/), Dotnet Core's default testing framework in mind. Nevertheless, it dosen't mean you are restricted to it.
+The goal is [to keep it simple](https://en.wikipedia.org/wiki/You_aren%27t_gonna_need_it).  
+Amongst is being created with [XUnit](https://xunit.github.io/), Dotnet Core's default testing framework in mind. Nevertheless, it dosen't mean you are restricted to it.
 
 ## Current features
  - Availability on all three major platforms: Windows, Linux and OSX.
