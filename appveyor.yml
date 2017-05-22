@@ -9,10 +9,10 @@ init:
 before_build:
 - appveyor-retry dotnet restore -v Minimal
 build_script:
-- dotnet build "sln\Amongst\Amongst.csproj" -c %CONFIGURATION% --no-dependencies --version-suffix %LABEL% -o ..\..\artifacts\
+- dotnet build -c %CONFIGURATION% --no-dependencies --version-suffix %LABEL%
 test_script:
-- dotnet test "sln\Amongst.Test\Amongst.Test.csproj" -c %CONFIGURATION% -o ..\..\artifacts\
+- dotnet test "sln\Amongst.Test\Amongst.Test.csproj" --no-build -c %CONFIGURATION%
 artifacts:
-- path: artifacts\**\*.*
+- path: sln\Amongst\bin\%CONFIGURATION%\**\*.*
 cache:
 - '%USERPROFILE%\.nuget\packages'

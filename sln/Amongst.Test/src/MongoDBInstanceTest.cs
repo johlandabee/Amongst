@@ -16,11 +16,6 @@ namespace Amongst.Test
             // Do not use OS dependent path seperator.
             // Local build, back to project root.
             var toolsPath = Path.GetFullPath("../../../../../");
-
-            var ci = Environment.GetEnvironmentVariable("CI");
-            if (ci != null)
-                // Back to project root from artifacts/ folder.
-                toolsPath = "../";
             
             Environment.SetEnvironmentVariable("AMONGST_PATH", toolsPath);
             Environment.SetEnvironmentVariable("AMONGST_ALLOW_MULTIPLE_RUNNERS", "");
