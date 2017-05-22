@@ -7,5 +7,5 @@ mono: none
 dotnet: 1.0.3
 script:
   - dotnet restore -v Minimal
-  - dotnet build sln/Amongst/ -f netstandard1.6 -c $CONFIGURATION -o ../../artifacts/
-  - dotnet test sln/Amongst.Test/Amongst.Test.csproj -f netcoreapp1.1 -c $CONFIGURATION -o ../../artifacts/
+  - dotnet build sln/Amongst/Amongst.csproj -f netstandard1.6 -c $CONFIGURATION
+  - dotnet test sln/Amongst.Test/Amongst.Test.csproj -f netcoreapp1.1 --no-build -c $CONFIGURATION
