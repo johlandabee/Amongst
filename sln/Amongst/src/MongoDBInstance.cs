@@ -152,7 +152,7 @@ namespace Amongst
                 _output.WriteLine(
                     $"[{DateTime.Now}][Warning]: You already spawned {_instanceCount} instances of mongod. " +
                     "It is recommended to share a MongoDB instance across your tests using a fixture. " +
-                    "You can read more about shared context within xUnit here: https://xunit.github.io/docs/shared-context.html " +
+                    "You can read more about shared context within xUnit here: https://xunit.github.io/docs/shared-context.html" +
                     "If it is intentional, you can igore this Warning.");
         }
 
@@ -266,8 +266,9 @@ namespace Amongst
         private static short GetAvailablePort()
         {
             const short begin = 27018;
+            const short end = begin + 100;
 
-            var port = (short) Enumerable.Range(begin, short.MaxValue)
+            var port = (short) Enumerable.Range(begin, end)
                 .Except(PortsInUse)
                 .FirstOrDefault(p =>
                 {
@@ -287,7 +288,7 @@ namespace Amongst
 
             if (port < begin)
                 throw new NoPortAvailableException(
-                    "Counld not spawn a new mongod instance. No port available.");
+                    $"Counld not spawn a new mongod instance. No port available within the range {begin}-{end}");
 
             PortsInUse.Add(port);
 
