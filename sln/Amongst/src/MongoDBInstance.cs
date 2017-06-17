@@ -5,11 +5,10 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
-using System.Reflection;
 using System.Threading;
 using Amongst.Exception;
+using Amongst.Helper;
 using Amongst.Output;
-
 #if NETSTANDARD1_6
 using System.Runtime.InteropServices;
 #endif
@@ -24,12 +23,10 @@ namespace Amongst
         private const string BIN_LINUX = "mongodb-linux-x86_64-3.4.4";
         private const string BIN_OSX = "mongodb-osx-x86_64-3.4.4";
 
-        private readonly IMongoDBInstanceOutputHelper _output;
-        private readonly LogVerbosity _logVerbosity;
-
         private static int _instanceCount;
 
         private readonly string _binaryPath;
+        private readonly MongoDBInstanceOptions _options;
         private readonly MongoDBConnection _connection;
         private readonly Process _process;
         private readonly ManualResetEventSlim _manualReset;
@@ -40,28 +37,38 @@ namespace Amongst
         public string ConnectionString => _connection.ToString();
         public MongoDBInstanceState State { get; private set; }
 
-        public static MongoDBInstance Spawn(IMongoDBInstanceOutputHelper output = null,
-            LogVerbosity logVerbosity = LogVerbosity.Quiet)
+        public static MongoDBInstance Spawn()
         {
-            return new MongoDBInstance(output, logVerbosity);
+            return new MongoDBInstance(new MongoDBInstanceOptions
+            {
+                LogVerbosity = LogVerbosity.Normal,
+                OutputHelper = null,
+                CleanBeforeRun = false,
+                Persist = false,
+                PackageDirectory = null
+            });
         }
 
-        private MongoDBInstance(IMongoDBInstanceOutputHelper output, LogVerbosity logVerbosity)
+        public static MongoDBInstance Spawn(MongoDBInstanceOptions options)
         {
-            _output = output;
-            _logVerbosity = logVerbosity;
-           
+            return new MongoDBInstance(options);
+        }
+
+        private MongoDBInstance(MongoDBInstanceOptions options)
+        {
+            _options = options;
+
             Id = Guid.NewGuid();
 
-            var instancePath = Path.Combine(GetBasePath(), "instances", $"{Id:N}");
+            var instancePath = Path.Combine(Directory.GetCurrentDirectory(), "instances", $"{Id:N}");
 
-            if (_output == null) {
+            if (_options.OutputHelper == null) {
                 var logDir = Path.Combine(instancePath, "logs");
                 var logFile = Path.Combine(logDir, $"{DateTime.Now:hh-mm-ss_yy-MM-dd}.log");
 
                 Directory.CreateDirectory(logDir);
 
-                _output = new TextFileOutputHelper(logFile);
+                _options.OutputHelper = new TextFileOutputHelper(logFile);
             }
 
             AssertSingleInstance();
@@ -73,13 +80,15 @@ namespace Amongst
 
             var dbPath = Path.Combine(instancePath, "data");
             Directory.CreateDirectory(dbPath);
-            
-            // Use Replace(): Uri cannot be created from Unix path.
-            var dbPathUri = dbPath.Replace("\\","/");
 
-            var dbLogLevel = logVerbosity == LogVerbosity.Quiet 
-                ? "--quiet" : logVerbosity == LogVerbosity.Verbose 
-                ? "--verbose" : null;
+            // Use Replace(): Uri cannot be created from UNIX path.
+            var dbPathUri = dbPath.Replace("\\", "/");
+
+            var dbLogLevel = _options.LogVerbosity == LogVerbosity.Quiet
+                ? "--quiet"
+                : _options.LogVerbosity == LogVerbosity.Verbose
+                    ? "--verbose"
+                    : null;
 
             var args = new[]
             {
@@ -130,7 +139,7 @@ namespace Amongst
             _manualReset.Wait(TimeSpan.FromSeconds(timeout));
 
             if (!_manualReset.IsSet)
-                throw new MongodStartTimeoutException($"mongod failed to start after {timeout} seconds.");
+                throw new TimeoutException($"mongod failed to start after {timeout} seconds.");
 
             _instanceCount++;
         }
@@ -143,17 +152,16 @@ namespace Amongst
             if (!_mutex.WaitOne(0)) {
                 _mutex.Dispose();
 
-                var allow = Environment.GetEnvironmentVariable("AMONGST_ALLOW_MULTIPLE_RUNNERS");
-                if (allow == null)
+                if (!_options.AllowMultipleRunners)
                     throw new MultipleTestRunnerInstancesException("Multiple test runner instances detected.");
             }
 
             if (_instanceCount > 1)
-                _output.WriteLine(
+                _options.OutputHelper.WriteLine(
                     $"[{DateTime.Now}][Warning]: You already spawned {_instanceCount} instances of mongod. " +
                     "It is recommended to share a MongoDB instance across your tests using a fixture. " +
                     "You can read more about shared context within xUnit here: https://xunit.github.io/docs/shared-context.html" +
-                    "If it is intentional, you can igore this Warning.");
+                    "If this is intentional, you can igore this Warning.");
         }
 
         private void FetchReadyState(object sender, DataReceivedEventArgs e)
@@ -164,6 +172,8 @@ namespace Amongst
             if (string.IsNullOrEmpty(e.Data) || !e.Data.Contains(pattern)) return;
 
             State = MongoDBInstanceState.Running;
+
+            // ReSharper disable once PossibleNullReferenceException
             process.OutputDataReceived -= FetchReadyState;
 
             _manualReset.Set();
@@ -174,9 +184,10 @@ namespace Amongst
             var process = sender as Process;
             if (string.IsNullOrEmpty(e.Data)) return;
 
+            // ReSharper disable once PossibleNullReferenceException
             var pidAndName = process.HasExited ? null : $"[{process.ProcessName}:{process.Id}]";
 
-            _output.WriteLine($"[{DateTime.Now}][Info][{Id:N}]{pidAndName}: {e.Data}");
+            _options.OutputHelper.WriteLine($"[{DateTime.Now}][Info][{Id:N}]{pidAndName}: {e.Data}");
         }
 
         private void OnErrorDataReceived(object sender, DataReceivedEventArgs e)
@@ -184,9 +195,10 @@ namespace Amongst
             var process = sender as Process;
             if (string.IsNullOrEmpty(e.Data)) return;
 
+            // ReSharper disable once PossibleNullReferenceException
             var pidAndName = process.HasExited ? null : $"[{process.ProcessName}:{process.Id}]";
 
-            _output.WriteLine($"[{DateTime.Now}][Error][{Id:N}]{pidAndName}: {e.Data}");
+            _options.OutputHelper.WriteLine($"[{DateTime.Now}][Error][{Id:N}]{pidAndName}: {e.Data}");
         }
 
         private void OnExited(object sender, EventArgs e)
@@ -197,20 +209,10 @@ namespace Amongst
             var process = sender as Process;
             var prefix = $"[{DateTime.Now}][Info][{Id:N}]";
 
-            _output.WriteLine($"{prefix}: Instance stopped with exit code {process.ExitCode}");
+            // ReSharper disable once PossibleNullReferenceException
+            _options.OutputHelper.WriteLine($"{prefix}: Instance stopped with exit code {process.ExitCode}");
 
             process.Exited -= OnExited;
-        }
-
-        private static string GetBasePath()
-        {
-            return Environment.GetEnvironmentVariable("AMONGST_PATH") ?? new Func<string>(() =>
-            {
-                var codeBase = typeof(MongoDBInstance).GetTypeInfo().Assembly.CodeBase;
-                var assemblyDir = Path.GetDirectoryName(new Uri(codeBase).LocalPath);
-
-                return assemblyDir;
-            })();
         }
 
 #pragma warning disable CS0162
@@ -221,28 +223,55 @@ namespace Amongst
             var isLinux = RuntimeInformation.IsOSPlatform(OSPlatform.Linux);
             var isOSX = RuntimeInformation.IsOSPlatform(OSPlatform.OSX);
 
-            var osDescription = RuntimeInformation.OSDescription;
+            var osDescription = RuntimeInformation.OSDescription.Trim();
 #elif NET46
             const bool isWindows = true;
             const bool isLinux = false;
             const bool isOSX = false;
 
-            var osDescription = Environment.OSVersion;
+            var osDescription = $"{Environment.OSVersion}".Trim();
 #endif
-            string version;
+            string build;
             if (isWindows)
-                version = BIN_WIN32;
+                build = BIN_WIN32;
             else if (isLinux)
-                version = BIN_LINUX;
+                build = BIN_LINUX;
             else if (isOSX)
-                version = BIN_OSX;
+                build = BIN_OSX;
             else
                 throw new PlatformNotSupportedException($"Platform {osDescription} is not supported.");
 
+            _options.OutputHelper.WriteLine(
+                $"[{DateTime.Now}][Info]: Detected {osDescription}. Using {build} binaries.");
 
-            _output.WriteLine($"[{DateTime.Now}][Info]: Detected {osDescription}. Using {version} binaries.");
+            var binSegment = Path.Combine("tools", $"{build}", "bin");
 
-            return Path.Combine(GetBasePath(), "tools", version, "bin");
+            var homePath = isWindows
+                ? Environment.GetEnvironmentVariable("USERPROFILE")
+                : Environment.GetEnvironmentVariable("HOME");
+
+            var searchPaths = new List<string>
+            {
+                Directory.GetCurrentDirectory(),
+                Path.Combine(homePath, ".nuget", "packages")
+            };
+
+            if (!string.IsNullOrEmpty(_options.PackageDirectory))
+                searchPaths.Add(_options.PackageDirectory);
+
+            var binPath = searchPaths.Select(path =>
+                FolderSearch.FindUpwards(path, binSegment)
+                ?? FolderSearch.FindDownwards(path, binSegment)).FirstOrDefault();
+
+            if (binPath == null)
+                throw new DirectoryNotFoundException(
+                    "MongoDB binarys could not be found. " +
+                    "If you have a custom package path, please specify it using the PackageDirectory option. " +
+                    "If you already specified a custom package directory, double check if it is correct.");
+
+            _options.OutputHelper.WriteLine($"[{DateTime.Now}][Info]: Full binary path: {binPath}");
+
+            return binPath;
         }
 #pragma warning restore
 
@@ -253,7 +282,7 @@ namespace Amongst
             var p = Process.Start("chmod", $"+x {file}");
             p.WaitForExit();
 
-            if(p.ExitCode != 0)
+            if (p.ExitCode != 0)
                 throw new CouldNotSetExecutableBit($"Could not set executable bit for {file}");
         }
 
@@ -266,9 +295,9 @@ namespace Amongst
         private static short GetAvailablePort()
         {
             const short begin = 27018;
-            const short end = begin + 100;
+            const short count = 100;
 
-            var port = (short) Enumerable.Range(begin, end)
+            var port = (short) Enumerable.Range(begin, count)
                 .Except(PortsInUse)
                 .FirstOrDefault(p =>
                 {
@@ -288,26 +317,76 @@ namespace Amongst
 
             if (port < begin)
                 throw new NoPortAvailableException(
-                    $"Counld not spawn a new mongod instance. No port available within the range {begin}-{end}");
+                    $"Counld not spawn a new mongod instance. No port available within the range {begin}-{begin + count}");
 
             PortsInUse.Add(port);
 
             return port;
         }
 
-        public void Import()
+        public void Import(string database, string collection, string filePath, bool dropCollection = true,
+            int timeout = 5000)
         {
+            if (!File.Exists(filePath))
+                throw new FileNotFoundException($"Could not import file {filePath}.");
+
             var fullPath = Path.Combine(_binaryPath, "mongoimport");
 
 #if NETSTANDARD1_6
-            if(IsUnix())
+            if (IsUnix())
                 SetExecutableBit(fullPath);
 #endif
 
-            throw new NotImplementedException();
+            filePath = filePath.Replace("\\", "/");
+
+            var drop = dropCollection ? "--drop" : null;
+            var logVerbosity = _options.LogVerbosity == LogVerbosity.Quiet
+                ? "--quiet"
+                : _options.LogVerbosity == LogVerbosity.Verbose
+                    ? "--verbose"
+                    : null;
+
+            var args = new[]
+            {
+                $"--host {_connection.IP}:{_connection.Port}",
+                $"--db {database}",
+                $"--collection {collection}",
+                $"--file {filePath}",
+                $"{drop}",
+                $"{logVerbosity}"
+            };
+
+            var p = new Process
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    FileName = fullPath,
+                    Arguments = string.Join(" ", args),
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true
+                }
+            };
+
+            p.OutputDataReceived += OnOutputDataReceived;
+            p.ErrorDataReceived += OnErrorDataReceived;
+
+            p.Start();
+
+            var exited = p.WaitForExit(timeout);
+            if (!exited)
+                throw new TimeoutException(
+                    $"Mongoimport failed to import {filePath} to {database}/{collection} after {timeout} milliseconds.");
+
+            if (p.ExitCode != 0)
+                throw new ExitCodeException(
+                    $"Mongoimport failed to import {filePath} to {database}/{collection}. Exit code {p.ExitCode}.");
+
+            if (_options.LogVerbosity > LogVerbosity.Normal)
+                _options.OutputHelper.WriteLine($"Successfully imported {filePath} to {database}/{collection}");
         }
 
-        public void Export()
+        public void Export(string database, string collection, string filePath, int timeout = 5000)
         {
             var fullPath = Path.Combine(_binaryPath, "mongoexport");
 
@@ -315,8 +394,51 @@ namespace Amongst
             if (IsUnix())
                 SetExecutableBit(fullPath);
 #endif
+            filePath = filePath.Replace("\\", "/");
 
-            throw new NotImplementedException();
+            var logVerbosity = _options.LogVerbosity == LogVerbosity.Quiet
+                ? "--quiet"
+                : _options.LogVerbosity == LogVerbosity.Verbose
+                    ? "--verbose"
+                    : null;
+
+            var args = new[]
+            {
+                $"--host {_connection.IP}:{_connection.Port}",
+                $"--db {database}",
+                $"--collection {collection}",
+                $"--out {filePath}",
+                $"{logVerbosity}"
+            };
+
+            var p = new Process
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    FileName = fullPath,
+                    Arguments = string.Join(" ", args),
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true
+                }
+            };
+
+            p.OutputDataReceived += OnOutputDataReceived;
+            p.ErrorDataReceived += OnErrorDataReceived;
+
+            p.Start();
+
+            var exited = p.WaitForExit(timeout);
+            if (!exited)
+                throw new TimeoutException(
+                    $"Mongoexport failed to export {database}/{collection} to {filePath} after {timeout} milliseconds.");
+
+            if (p.ExitCode != 0)
+                throw new ExitCodeException(
+                    $"Mongoexport failed to export {database}/{collection} to {filePath}. Exit code {p.ExitCode}.");
+
+            if (_options.LogVerbosity > LogVerbosity.Normal)
+                _options.OutputHelper.WriteLine($"Successfully exported {database}/{collection} to {filePath}");
         }
 
         public void Stop()
@@ -328,25 +450,33 @@ namespace Amongst
             _process?.Kill();
 
             const int timeout = 5000;
-            var exited = _process.WaitForExit(5000);
+            var exited = _process.WaitForExit(timeout);
 
             if (!exited)
-                throw new MongodStopTimeoutException($"Failed to stop mongod after {timeout} milliseconds.");
+                throw new TimeoutException($"Failed to stop mongod after {timeout} milliseconds.");
 
-            State = MongoDBInstanceState.Stopped;      
+            State = MongoDBInstanceState.Stopped;
+
+            _process?.CancelErrorRead();
+            _process?.CancelOutputRead();
         }
 
         public void Dispose()
         {
             Stop();
 
-            _process?.CancelErrorRead();
-            _process?.CancelOutputRead();
-
-            _output?.Dispose();
-            _mutex?.Dispose();
+            Dispose(true);
+            GC.SuppressFinalize(this);
 
             _instanceCount--;
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposing) return;
+
+            _options.OutputHelper.Dispose();
+            _mutex.Dispose();
         }
     }
 }
