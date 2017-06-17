@@ -5,12 +5,17 @@ using Newtonsoft.Json.Serialization;
 
 namespace Amongst
 {
+    public class Persistence
+    {
+        public Guid Id;
+        public DateTime LastRun;
+    }
+
     public class Store
     {
-        private readonly string _storeFilePath;
-
-        public Persistence Persistence = new Persistence();
         public string BinaryPath;
+        public Persistence Persistence = new Persistence();
+        private readonly string _storeFilePath;
 
         public Store()
         {
@@ -39,11 +44,5 @@ namespace Amongst
                 }).Serialize(file, this);
             }
         }
-    }
-
-    public class Persistence
-    {
-        public DateTime LastRun;
-        public Guid Id;
     }
 }

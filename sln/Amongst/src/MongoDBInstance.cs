@@ -4,7 +4,6 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
-using System.Net.Sockets;
 using System.Threading;
 using Amongst.Exception;
 using Amongst.Helper;
@@ -16,13 +15,12 @@ using System.Runtime.InteropServices;
 
 namespace Amongst
 {
-    public class MongoDBInstance : IDisposable
+    public partial class MongoDBInstance : IDisposable
     {
         private static readonly object Sync = new object();
 
         private static int _instanceCount;
         private static readonly Store Store = new Store();
-        private static readonly List<int> PortsInUse = new List<int>();
 
         private const string BIN_WIN32 = "mongodb-win32-x86_64-2008plus-3.4.4";
         private const string BIN_LINUX = "mongodb-linux-x86_64-3.4.4";
@@ -61,8 +59,9 @@ namespace Amongst
         {
             _options = options;
 
-            lock (Sync)
+            lock (Sync) {
                 Store.Load();
+            }
 
             if (_options.Persist) {
                 lock (Sync) {
@@ -100,7 +99,7 @@ namespace Amongst
 
             _connection = new MongoDBConnection(
                 IPAddress.Loopback,
-                GetAvailablePort()
+                PortManager.GetAvailablePort()
             );
 
             var dbPath = Path.Combine(instancePath, "data");
@@ -146,7 +145,7 @@ namespace Amongst
                 }
             };
 
-            _process.OutputDataReceived += FetchReadyState;
+            _process.OutputDataReceived += OnFetchReadyState;
             _process.OutputDataReceived += OnOutputDataReceived;
             _process.ErrorDataReceived += OnErrorDataReceived;
             _process.Exited += OnExited;
@@ -187,60 +186,6 @@ namespace Amongst
                     "It is recommended to share a MongoDB instance across your tests using a fixture. " +
                     "You can read more about shared context within xUnit here: https://xunit.github.io/docs/shared-context.html. " +
                     "If this is intentional, you can igore this Warning.");
-        }
-
-        private void FetchReadyState(object sender, DataReceivedEventArgs e)
-        {
-            const string pattern = "waiting for connections on port";
-
-            var process = sender as Process;
-            if (string.IsNullOrEmpty(e.Data) || !e.Data.Contains(pattern)) return;
-
-            State = MongoDBInstanceState.Running;
-
-            // ReSharper disable once PossibleNullReferenceException
-            process.OutputDataReceived -= FetchReadyState;
-
-            _manualReset.Set();
-        }
-
-        private void OnOutputDataReceived(object sender, DataReceivedEventArgs e)
-        {
-            var process = sender as Process;
-            if (string.IsNullOrEmpty(e.Data)) return;
-
-            // ReSharper disable once PossibleNullReferenceException
-            var pidAndName = process.HasExited ? null : $"[{process.ProcessName}:{process.Id}]";
-
-            _options.OutputHelper.WriteLine($"[{DateTime.Now}][Info][{Id:N}]{pidAndName}: {e.Data}");
-        }
-
-        private void OnErrorDataReceived(object sender, DataReceivedEventArgs e)
-        {
-            var process = sender as Process;
-            if (string.IsNullOrEmpty(e.Data)) return;
-
-            // ReSharper disable once PossibleNullReferenceException
-            var pidAndName = process.HasExited ? null : $"[{process.ProcessName}:{process.Id}]";
-
-            _options.OutputHelper.WriteLine($"[{DateTime.Now}][Error][{Id:N}]{pidAndName}: {e.Data}");
-        }
-
-        private void OnExited(object sender, EventArgs e)
-        {
-            State = MongoDBInstanceState.Stopped;
-
-            lock (Sync) {
-                PortsInUse.Remove(_connection.Port);
-            }
-
-            var process = sender as Process;
-            var prefix = $"[{DateTime.Now}][Info][{Id:N}]";
-
-            // ReSharper disable once PossibleNullReferenceException
-            _options.OutputHelper.WriteLine($"{prefix}: Instance stopped with exit code {process.ExitCode}");
-
-            process.Exited -= OnExited;
         }
 
 #pragma warning disable CS0162
@@ -331,157 +276,6 @@ namespace Amongst
             return RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX);
         }
 #endif
-
-        private static short GetAvailablePort()
-        {
-            const short begin = 27018;
-            const short count = 100;
-
-            var port = (short) Enumerable.Range(begin, count)
-                .Except(PortsInUse)
-                .FirstOrDefault(p =>
-                {
-                    var listener = new TcpListener(IPAddress.Loopback, p);
-                    try {
-                        listener.Start();
-                    }
-                    catch (SocketException) {
-                        return false;
-                    }
-                    finally {
-                        listener.Stop();
-                    }
-
-                    return true;
-                });
-
-            if (port < begin)
-                throw new NoPortAvailableException(
-                    $"Counld not spawn a new mongod instance. No port available within the range {begin}-{begin + count}");
-
-            lock (Sync) {
-                PortsInUse.Add(port);
-            }
-
-            return port;
-        }
-
-        public void Import(string database, string collection, string filePath, bool dropCollection = true,
-            int timeout = 5000)
-        {
-            if (!File.Exists(filePath))
-                throw new FileNotFoundException($"Could not import file {filePath}.");
-
-            var fullPath = Path.Combine(_binaryPath, "mongoimport");
-
-#if NETSTANDARD1_6
-            if (IsUnix())
-                SetExecutableBit(fullPath);
-#endif
-
-            filePath = filePath.Replace("\\", "/");
-
-            var drop = dropCollection ? "--drop" : null;
-            var logVerbosity = _options.LogVerbosity == LogVerbosity.Quiet
-                ? "--quiet"
-                : _options.LogVerbosity == LogVerbosity.Verbose
-                    ? "--verbose"
-                    : null;
-
-            var args = new[]
-            {
-                $"--host {_connection.IP}:{_connection.Port}",
-                $"--db {database}",
-                $"--collection {collection}",
-                $"--file {filePath}",
-                $"{drop}",
-                $"{logVerbosity}"
-            };
-
-            var p = new Process
-            {
-                StartInfo = new ProcessStartInfo
-                {
-                    FileName = fullPath,
-                    Arguments = string.Join(" ", args),
-                    UseShellExecute = false,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true
-                }
-            };
-
-            p.OutputDataReceived += OnOutputDataReceived;
-            p.ErrorDataReceived += OnErrorDataReceived;
-
-            p.Start();
-
-            var exited = p.WaitForExit(timeout);
-            if (!exited)
-                throw new TimeoutException(
-                    $"Mongoimport failed to import {filePath} to {database}/{collection} after {timeout} milliseconds.");
-
-            if (p.ExitCode != 0)
-                throw new ExitCodeException(
-                    $"Mongoimport failed to import {filePath} to {database}/{collection}. Exit code {p.ExitCode}.");
-
-            if (_options.LogVerbosity > LogVerbosity.Normal)
-                _options.OutputHelper.WriteLine($"Successfully imported {filePath} to {database}/{collection}");
-        }
-
-        public void Export(string database, string collection, string filePath, int timeout = 5000)
-        {
-            var fullPath = Path.Combine(_binaryPath, "mongoexport");
-
-#if NETSTANDARD1_6
-            if (IsUnix())
-                SetExecutableBit(fullPath);
-#endif
-            filePath = filePath.Replace("\\", "/");
-
-            var logVerbosity = _options.LogVerbosity == LogVerbosity.Quiet
-                ? "--quiet"
-                : _options.LogVerbosity == LogVerbosity.Verbose
-                    ? "--verbose"
-                    : null;
-
-            var args = new[]
-            {
-                $"--host {_connection.IP}:{_connection.Port}",
-                $"--db {database}",
-                $"--collection {collection}",
-                $"--out {filePath}",
-                $"{logVerbosity}"
-            };
-
-            var p = new Process
-            {
-                StartInfo = new ProcessStartInfo
-                {
-                    FileName = fullPath,
-                    Arguments = string.Join(" ", args),
-                    UseShellExecute = false,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true
-                }
-            };
-
-            p.OutputDataReceived += OnOutputDataReceived;
-            p.ErrorDataReceived += OnErrorDataReceived;
-
-            p.Start();
-
-            var exited = p.WaitForExit(timeout);
-            if (!exited)
-                throw new TimeoutException(
-                    $"Mongoexport failed to export {database}/{collection} to {filePath} after {timeout} milliseconds.");
-
-            if (p.ExitCode != 0)
-                throw new ExitCodeException(
-                    $"Mongoexport failed to export {database}/{collection} to {filePath}. Exit code {p.ExitCode}.");
-
-            if (_options.LogVerbosity > LogVerbosity.Normal)
-                _options.OutputHelper.WriteLine($"Successfully exported {database}/{collection} to {filePath}");
-        }
 
         public void Stop()
         {

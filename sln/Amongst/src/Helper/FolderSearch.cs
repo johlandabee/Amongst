@@ -4,6 +4,13 @@ namespace Amongst.Helper
 {
     public class FolderSearch
     {
+        /// <summary>
+        /// TODO
+        /// </summary>
+        /// <param name="path"></param>
+        /// <param name="pattern"></param>
+        /// <param name="maxRecursion"></param>
+        /// <returns></returns>
         public static string FindDownwards(string path, string pattern, int maxRecursion = 6)
         {
             for (var i = 0; i <= maxRecursion; i++) {
@@ -24,6 +31,13 @@ namespace Amongst.Helper
             return null;
         }
 
+        /// <summary>
+        /// TODO
+        /// </summary>
+        /// <param name="path"></param>
+        /// <param name="pattern"></param>
+        /// <param name="maxRecursion"></param>
+        /// <returns></returns>
         public static string FindUpwards(string path, string pattern, int maxRecursion = 6)
         {
             return FindUpwards(path, pattern, 0, maxRecursion);
