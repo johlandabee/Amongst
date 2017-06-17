@@ -260,8 +260,8 @@ namespace Amongst
                 searchPaths.Add(_options.PackageDirectory);
 
             var binPath = searchPaths.Select(path =>
-                FolderSearch.FindUpwards(path, binSegment)
-                ?? FolderSearch.FindDownwards(path, binSegment)).FirstOrDefault();
+                FolderSearch.FindDownwards(path, binSegment)
+                ?? FolderSearch.FindUpwards(path, binSegment)).FirstOrDefault();
 
             if (binPath == null)
                 throw new DirectoryNotFoundException(
