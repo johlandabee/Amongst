@@ -86,6 +86,30 @@ namespace Amongst.Test
             instance.Stop();
         }
 
+        [Fact]
+        public void Insatnce_Should_Be_Persistent()
+        {
+            var instance = MongoDBInstance.Spawn(new MongoDBInstanceOptions
+            {
+                LogVerbosity = LogVerbosity.Verbose,
+                OutputHelper = _output,
+                AllowMultipleRunners = true,
+                Persist = true
+            });
+            instance.Stop();
+
+            // TODO
+
+            instance = MongoDBInstance.Spawn(new MongoDBInstanceOptions
+            {
+                LogVerbosity = LogVerbosity.Verbose,
+                OutputHelper = _output,
+                AllowMultipleRunners = true,
+                Persist = true
+            });
+            instance.Stop();
+        }
+
         //[Fact]
         //public void Import_Should_Import_Dataset_From_Json_File()
         //{
