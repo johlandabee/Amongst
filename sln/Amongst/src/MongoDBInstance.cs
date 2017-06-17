@@ -11,19 +11,22 @@ using Amongst.Helper;
 using Amongst.Output;
 #if NETSTANDARD1_6
 using System.Runtime.InteropServices;
+
 #endif
 
 namespace Amongst
 {
     public class MongoDBInstance : IDisposable
     {
+        private static readonly object Sync = new object();
+
+        private static int _instanceCount;
+        private static readonly Store Store = new Store();
         private static readonly List<int> PortsInUse = new List<int>();
 
         private const string BIN_WIN32 = "mongodb-win32-x86_64-2008plus-3.4.4";
         private const string BIN_LINUX = "mongodb-linux-x86_64-3.4.4";
         private const string BIN_OSX = "mongodb-osx-x86_64-3.4.4";
-
-        private static int _instanceCount;
 
         private readonly string _binaryPath;
         private readonly MongoDBInstanceOptions _options;
@@ -58,9 +61,31 @@ namespace Amongst
         {
             _options = options;
 
-            Id = Guid.NewGuid();
+            lock (Sync)
+                Store.Load();
 
-            var instancePath = Path.Combine(Directory.GetCurrentDirectory(), "instances", $"{Id:N}");
+            if (_options.Persist) {
+                lock (Sync) {
+                    if (Store.Persistence.Id == Guid.Empty)
+                        Store.Persistence.Id = Guid.NewGuid();
+
+                    Store.Persistence.LastRun = DateTime.Now;
+                    Store.Save();
+                }
+
+                Id = Store.Persistence.Id;
+
+                _options.OutputHelper.WriteLine($"[{DateTime.Now}][Info]: Persistence enabled. Instance id = {Id}");
+            }
+            else {
+                Id = Guid.NewGuid();
+            }
+
+            var instancesPath = Path.Combine(Directory.GetCurrentDirectory(), "instances");
+            if (_options.CleanBeforeRun && !_options.Persist)
+                Directory.Delete(instancesPath, true);
+
+            var instancePath = Path.Combine(instancesPath, $"{Id:N}");
 
             if (_options.OutputHelper == null) {
                 var logDir = Path.Combine(instancePath, "logs");
@@ -160,7 +185,7 @@ namespace Amongst
                 _options.OutputHelper.WriteLine(
                     $"[{DateTime.Now}][Warning]: You already spawned {_instanceCount} instances of mongod. " +
                     "It is recommended to share a MongoDB instance across your tests using a fixture. " +
-                    "You can read more about shared context within xUnit here: https://xunit.github.io/docs/shared-context.html" +
+                    "You can read more about shared context within xUnit here: https://xunit.github.io/docs/shared-context.html. " +
                     "If this is intentional, you can igore this Warning.");
         }
 
@@ -204,7 +229,10 @@ namespace Amongst
         private void OnExited(object sender, EventArgs e)
         {
             State = MongoDBInstanceState.Stopped;
-            PortsInUse.Remove(_connection.Port);
+
+            lock (Sync) {
+                PortsInUse.Remove(_connection.Port);
+            }
 
             var process = sender as Process;
             var prefix = $"[{DateTime.Now}][Info][{Id:N}]";
@@ -241,33 +269,45 @@ namespace Amongst
             else
                 throw new PlatformNotSupportedException($"Platform {osDescription} is not supported.");
 
+            var prefix = $"[{DateTime.Now}][Info]";
             _options.OutputHelper.WriteLine(
-                $"[{DateTime.Now}][Info]: Detected {osDescription}. Using {build} binaries.");
+                $"{prefix}: Detected {osDescription}. Using {build} binaries.");
 
-            var binSegment = Path.Combine("tools", $"{build}", "bin");
+            string binPath;
+            if (Directory.Exists(Store.BinaryPath)) {
+                binPath = Store.BinaryPath;
 
-            var homePath = isWindows
-                ? Environment.GetEnvironmentVariable("USERPROFILE")
-                : Environment.GetEnvironmentVariable("HOME");
+                _options.OutputHelper.WriteLine($"{prefix}: Using cached binary path.");
+            }
+            else {
+                var binSegment = Path.Combine("tools", $"{build}", "bin");
 
-            var searchPaths = new List<string>
-            {
-                Directory.GetCurrentDirectory(),
-                Path.Combine(homePath, ".nuget", "packages")
-            };
+                var homePath = isWindows
+                    ? Environment.GetEnvironmentVariable("USERPROFILE")
+                    : Environment.GetEnvironmentVariable("HOME");
 
-            if (!string.IsNullOrEmpty(_options.PackageDirectory))
-                searchPaths.Add(_options.PackageDirectory);
+                var searchPaths = new List<string>
+                {
+                    Directory.GetCurrentDirectory(),
+                    Path.Combine(homePath, ".nuget", "packages"),
+                    _options.PackageDirectory
+                }.Where(p => !string.IsNullOrEmpty(p));
 
-            var binPath = searchPaths.Select(path =>
-                FolderSearch.FindDownwards(path, binSegment)
-                ?? FolderSearch.FindUpwards(path, binSegment)).FirstOrDefault();
+                binPath = searchPaths.Select(path =>
+                    FolderSearch.FindDownwards(path, binSegment)
+                    ?? FolderSearch.FindUpwards(path, binSegment)).FirstOrDefault();
+            }
 
             if (binPath == null)
                 throw new DirectoryNotFoundException(
                     "MongoDB binarys could not be found. " +
                     "If you have a custom package path, please specify it using the PackageDirectory option. " +
                     "If you already specified a custom package directory, double check if it is correct.");
+
+            lock (Sync) {
+                Store.BinaryPath = binPath;
+                Store.Save();
+            }
 
             _options.OutputHelper.WriteLine($"[{DateTime.Now}][Info]: Full binary path: {binPath}");
 
@@ -319,7 +359,9 @@ namespace Amongst
                 throw new NoPortAvailableException(
                     $"Counld not spawn a new mongod instance. No port available within the range {begin}-{begin + count}");
 
-            PortsInUse.Add(port);
+            lock (Sync) {
+                PortsInUse.Add(port);
+            }
 
             return port;
         }

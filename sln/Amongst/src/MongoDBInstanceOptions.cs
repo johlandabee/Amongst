@@ -20,14 +20,14 @@ namespace Amongst
 
         /// <summary>
         /// If set, the instances directory will be deleted before starting up.
-        /// This should not be used in combination with <see cref="Persist"/>.
+        /// Will be ignored if <see cref="Persist"/> is set.
         /// False by default.
         /// </summary>
         public bool CleanBeforeRun;
 
         /// <summary>
         /// If set, the last instance will be reused. Data will be persistant between runs.
-        /// This should not be used in combination with <see cref="CleanBeforeRun"/>
+        /// <see cref="CleanBeforeRun"/> will be ignored.
         /// False by default.
         /// </summary>
         public bool Persist;
@@ -47,7 +47,7 @@ namespace Amongst
             get => _packageDirectory;
             set {
                 if (!Directory.Exists(value))
-                    throw new DirectoryNotFoundException("PackageDirectory must be an existing path.");
+                    throw new DirectoryNotFoundException("PackageDirectory must be a path.");
 
                 _packageDirectory = value;
             }

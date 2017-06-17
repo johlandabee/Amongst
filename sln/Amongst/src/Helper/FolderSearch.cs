@@ -36,6 +36,7 @@ namespace Amongst.Helper
             }
             catch (DirectoryNotFoundException) {
                 if (depth > maxRecursion) return null;
+
                 foreach (var subDir in Directory.GetDirectories(path)) {
                     var result = FindUpwards(subDir, pattern, depth + 1, maxRecursion);
                     if (result != null)
