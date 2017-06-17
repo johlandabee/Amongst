@@ -1,72 +1,136 @@
 using System;
 using System.IO;
+using System.Collections.Generic;
+using Amongst.Test.Helper;
 using Xunit;
 using Xunit.Abstractions;
 using FluentAssertions;
 using MongoDB.Driver;
+using System.Net;
+using System.Net.Sockets;
+using Amongst.Exception;
 
 namespace Amongst.Test
 {
-    public class MongoDBInstanceTest : IDisposable
+    public class MongoDBInstanceTest
     {
-        private readonly XunitTestOutputHelper _outout;
+        private readonly XunitTestOutputHelper _output;
 
         public MongoDBInstanceTest(ITestOutputHelper output)
         {
-            // Do not use OS dependent path seperator.
-            // Local build, back to project root.
-            var toolsPath = Path.GetFullPath("../../../../../");
-            
-            Environment.SetEnvironmentVariable("AMONGST_PATH", toolsPath);
-            Environment.SetEnvironmentVariable("AMONGST_ALLOW_MULTIPLE_RUNNERS", "");
-
-            _outout = new XunitTestOutputHelper(output);
+            _output = new XunitTestOutputHelper(output);
         }
 
         [Fact]
-        public void Should_spawn_connect_insert_and_receive_data_finally_stop()
+        public void Spawn_Should_Start_A_New_Instance()
         {
-            
-
-            var instance = MongoDBInstance.Spawn(_outout, LogVerbosity.Verbose);
-
-            instance.State.ShouldBeEquivalentTo(MongoDBInstanceState.Running, "because it was spawned.");
-            instance.Id.Should().NotBeEmpty("because a new Guid gets assigned on Spawn().");
-            instance.ConnectionString.Should().MatchRegex(@"^mongodb:\/\/127\.0\.0\.1:[0-9]{5}\/$",
-                "because mongod is stated on 127.0.0.1 with a port assigned above 27017.");
-
-            var client = new MongoClient(instance.ConnectionString);
-            client.Should().NotBeNull("because we connect to our mongodb instance.");
-
-            var db = client.GetDatabase("UnitTest");
-            db.Should().NotBeNull("because we got our UnitTest database.");
-
-            var collection = db.GetCollection<TestObjectA>("TestCollection");
-            collection.Should().NotBeNull("because we received it form your mongodb instance.");
-
-            var objA = new TestObjectA
+            var instance = MongoDBInstance.Spawn(new MongoDBInstanceOptions
             {
-                TestPropertyA = 42,
-                TestPropertyB = "FourtyTwo",
-                TestPropertyC = new []{ 4, 2 },
-                TestPropertyD = new[] { "Fourty", "Two" }
-            };
+                LogVerbosity = LogVerbosity.Verbose,
+                OutputHelper = _output,
+                AllowMultipleRunners = true
+            });
 
-            collection.InsertOne(objA);
+            instance.Should().NotBeNull().And.BeAssignableTo<MongoDBInstance>();
+            instance.State.ShouldBeEquivalentTo(MongoDBInstanceState.Running);
+            instance.Id.Should().NotBeEmpty();
 
-            var resultA = collection.Find(f => f.TestPropertyB == "FourtyTwo").FirstOrDefault();
-            resultA.Should().NotBeNull("because we inserted a data set before.");
-            resultA.ShouldBeEquivalentTo(objA, "because that's the data be inserted.");
-            
             instance.Stop();
-            instance.State.ShouldBeEquivalentTo(MongoDBInstanceState.Stopped, "because we stopped it.");
-
-            instance.Dispose();
         }
 
-        public void Dispose()
+        [Fact]
+        public void Spawn_Should_Throw_NoPortAvailableException()
         {
-            _outout?.Dispose();
+            const short begin = 27018;
+            const short end = begin + 100;
+
+            var listeners = new List<TcpListener>();
+            for (var i = begin; i < end; i++) {
+                var l = new TcpListener(IPAddress.Loopback, i);
+
+                try {
+                    l.Start();
+                    listeners.Add(l);
+                }
+                catch (SocketException) {
+                    _output.WriteLine($"[Info][XUnit]: Port {i} is unavailable.");
+                }
+            }
+
+            Action spawn = () => MongoDBInstance.Spawn(new MongoDBInstanceOptions
+            {
+                LogVerbosity = LogVerbosity.Verbose,
+                OutputHelper = _output,
+                AllowMultipleRunners = true
+            });
+
+            spawn.ShouldThrow<NoPortAvailableException>();
+
+            listeners.ForEach(l => l.Stop());
+        }
+
+        [Fact]
+        public void ConnectionString_Should_Be_Valid()
+        {
+            var instance = MongoDBInstance.Spawn(new MongoDBInstanceOptions
+            {
+                LogVerbosity = LogVerbosity.Verbose,
+                OutputHelper = _output,
+                AllowMultipleRunners = true
+            });
+
+            instance.ConnectionString.Should().MatchRegex(@"^mongodb:\/\/127\.0\.0\.1:[0-9]{5}\/$");
+
+            new MongoClient(instance.ConnectionString).Should().NotBeNull();
+
+            instance.Stop();
+        }
+
+        //[Fact]
+        //public void Import_Should_Import_Dataset_From_Json_File()
+        //{
+        //    var instance = MongoDBInstance.Spawn(new MongoDBInstanceOptions
+        //    {
+        //        LogVerbosity = LogVerbosity.Verbose,
+        //        OutputHelper = _output
+        //    });
+
+        //    var client = new MongoClient(instance.ConnectionString);
+        //    var filePath = Path.GetFullPath("../../../import/restaurants.json");
+
+        //    const string dbName = "unit-test";
+        //    const string dbCollection = "restaurants";
+
+        //    instance.Import(dbName, dbCollection, filePath);
+
+        //    var db = client.GetDatabase(dbName);
+        //    var collection = db.GetCollection<BsonDocument>(dbCollection);
+
+        //    var restaurants = collection.Find(_ => true).ToList();
+
+        //    var compare = File.ReadAllLines(filePath).Select(BsonDocument.Parse).ToList();
+        //    compare.ForEach(_ => _.Remove());
+
+        //    restaurants.Should().Contain(compare);
+
+        //    instance.Stop();
+        //}
+
+        [Fact]
+        public void Stop_Should_Stop_The_Current_Instance()
+        {
+            var instance = MongoDBInstance.Spawn(new MongoDBInstanceOptions
+            {
+                LogVerbosity = LogVerbosity.Verbose,
+                OutputHelper = _output,
+                AllowMultipleRunners = true
+            });
+
+            instance.State.ShouldBeEquivalentTo(MongoDBInstanceState.Running);
+
+            instance.Stop();
+
+            instance.State.ShouldBeEquivalentTo(MongoDBInstanceState.Stopped);
         }
     }
 }
