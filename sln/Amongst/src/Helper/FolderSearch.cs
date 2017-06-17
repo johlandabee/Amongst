@@ -14,7 +14,7 @@ namespace Amongst.Helper
                     var sections = path.Split(Path.DirectorySeparatorChar);
                     var depth = sections.Length;
 
-                    if (i == maxRecursion || depth <= i)
+                    if (i == maxRecursion || depth <= 1)
                         return null;
 
                     path = string.Join(Path.DirectorySeparatorChar + "", sections, 0, depth - 1);
@@ -36,8 +36,8 @@ namespace Amongst.Helper
             }
             catch (DirectoryNotFoundException) {
                 if (depth > maxRecursion) return null;
-                foreach (var d in Directory.GetDirectories(path)) {
-                    var result = FindUpwards(d, pattern, depth + 1, maxRecursion);
+                foreach (var subDir in Directory.GetDirectories(path)) {
+                    var result = FindUpwards(subDir, pattern, depth + 1, maxRecursion);
                     if (result != null)
                         return result;
                 }
