@@ -4,8 +4,6 @@ namespace Amongst.Output
 {
     public class ConsoleOutputHelper : IMongoDBInstanceOutputHelper
     {
-        public void Dispose() { }
-
         public void WriteLine(string message)
         {
             Console.WriteLine(message);
@@ -15,5 +13,9 @@ namespace Amongst.Output
         {
             Console.WriteLine(format, args);
         }
+
+        //------------------------------------------------------------------------------------------------------------->
+
+        public void Dispose() { }
     }
 }

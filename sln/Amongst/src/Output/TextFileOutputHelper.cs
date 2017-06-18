@@ -26,6 +26,8 @@ namespace Amongst.Output
                 _writer.WriteLine(format, args);
         }
 
+        //------------------------------------------------------------------------------------------------------------->
+
         public void Dispose()
         {
             Dispose(true);
