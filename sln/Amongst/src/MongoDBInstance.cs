@@ -1,17 +1,11 @@
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Net;
 using System.Threading;
 using Amongst.Exception;
 using Amongst.Helper;
 using Amongst.Output;
-#if NETSTANDARD1_6
-using System.Runtime.InteropServices;
-
-#endif
 
 namespace Amongst
 {
@@ -21,10 +15,6 @@ namespace Amongst
 
         private static int _instanceCount;
         private static readonly Store Store = new Store();
-
-        private const string BIN_WIN32 = "mongodb-win32-x86_64-2008plus-3.4.4";
-        private const string BIN_LINUX = "mongodb-linux-x86_64-3.4.4";
-        private const string BIN_OSX = "mongodb-osx-x86_64-3.4.4";
 
         private readonly string _binaryPath;
         private readonly MongoDBInstanceOptions _options;
@@ -38,6 +28,12 @@ namespace Amongst
         public string ConnectionString => _connection.ToString();
         public MongoDBInstanceState State { get; private set; }
 
+        //------------------------------------------------------------------------------------------------------------->
+
+        /// <summary>
+        /// Spawns a new instance of <see cref="MongoDBInstance"/> with default options.
+        /// </summary>
+        /// <returns><see cref="MongoDBInstance"/></returns>
         public static MongoDBInstance Spawn()
         {
             return new MongoDBInstance(new MongoDBInstanceOptions
@@ -50,18 +46,95 @@ namespace Amongst
             });
         }
 
+        /// <summary>
+        /// Spawns a new instance of <see cref="MongoDBInstance"/> with user defined options.
+        /// </summary>
+        /// <param name="options"><see cref="MongoDBInstanceOptions"/></param>
+        /// <returns><see cref="MongoDBInstance"/></returns>
         public static MongoDBInstance Spawn(MongoDBInstanceOptions options)
         {
             return new MongoDBInstance(options);
         }
 
+        /// <summary>
+        /// Default constructor.
+        /// </summary>
+        /// <param name="options"><see cref="MongoDBInstanceOptions"/></param>
         private MongoDBInstance(MongoDBInstanceOptions options)
         {
             _options = options;
 
-            lock (Sync) {
-                Store.Load();
+            AssertSingleRunner();
+
+            _process = new Process();
+            _manualReset = new ManualResetEventSlim();
+            _binaryPath = GetBinaryPath();
+            _connection = new MongoDBConnection(
+                IPAddress.Loopback,
+                PortManager.GetAvailablePort()
+            );
+
+            var instancePath = Prepare();
+            var dbPath = Path.Combine(instancePath, "data");
+
+            Directory.CreateDirectory(dbPath);
+
+            // mongod wants a UNIX path.
+            var dbPathUri = dbPath.Replace("\\", "/");
+            var dbLogLevel = _options.LogVerbosity == LogVerbosity.Quiet
+                ? "--quiet"
+                : _options.LogVerbosity == LogVerbosity.Verbose
+                    ? "--verbose"
+                    : null;
+
+            ApplyDefaultOutputHelper(instancePath);
+            ApplyEventHandler();
+            Start(new[]
+            {
+                $"--bind_ip {_connection.IP}",
+                $"--port {_connection.Port}",
+                $"--dbpath {dbPathUri}",
+                "--noprealloc",
+                "--smallfiles",
+                "--nojournal",
+                $"{dbLogLevel}"
+            });
+
+            _instanceCount++;
+        }
+
+        /// <summary>
+        /// Make sure that we not run multiple runners simultaneously to prevent heavy system load by accident.
+        /// This behavior can be disabled within the <see cref="MongoDBInstanceOptions"/>.
+        /// </summary>
+        private void AssertSingleRunner()
+        {
+            const string moduleGuid = "9A66C037-5217-4125-82F8-DBB7C6E415AB";
+
+            _mutex = new Mutex(false, $"Global\\{moduleGuid}");
+            if (!_mutex.WaitOne(0)) {
+                _mutex.Dispose();
+
+                if (!_options.AllowMultipleRunners)
+                    throw new MultipleTestRunnerInstancesException("Multiple test runner instances detected.");
             }
+
+            if (_instanceCount > 1)
+                _options.OutputHelper.WriteLine(
+                    $"[{DateTime.Now}][Warning]: You already spawned {_instanceCount} instances of mongod. " +
+                    "It is recommended to share a MongoDB instance across your tests using a fixture. " +
+                    "You can read more about shared context within xUnit here: https://xunit.github.io/docs/shared-context.html. " +
+                    "If this is intentional, you can igore this Warning.");
+        }
+
+        /// <summary>
+        /// Sets a new id or uses the last one known if persistence is enabled.
+        /// Also deletes the instances directory if CleanBeforerRun is set to true. 
+        /// </summary>
+        /// <returns>Path to the current instance data direcory.</returns>
+        private string Prepare()
+        {
+            lock (Sync) Store.Load();
 
             if (_options.Persist) {
                 lock (Sync) {
@@ -84,48 +157,42 @@ namespace Amongst
             if (_options.CleanBeforeRun && !_options.Persist)
                 Directory.Delete(instancesPath, true);
 
-            var instancePath = Path.Combine(instancesPath, $"{Id:N}");
+            return Path.Combine(instancesPath, $"{Id:N}");
+        }
 
-            if (_options.OutputHelper == null) {
-                var logDir = Path.Combine(instancePath, "logs");
-                var logFile = Path.Combine(logDir, $"{DateTime.Now:hh-mm-ss_yy-MM-dd}.log");
+        /// <summary>
+        /// Applies the default output helper <see cref="TextFileOutputHelper"/> if none was set.
+        /// </summary>
+        /// <param name="instancePath">The data path of the current instance.</param>
+        private void ApplyDefaultOutputHelper(string instancePath)
+        {
+            if (_options.OutputHelper != null) return;
 
-                Directory.CreateDirectory(logDir);
+            var logDir = Path.Combine(instancePath, "logs");
+            var logFile = Path.Combine(logDir, $"{DateTime.Now:hh-mm-ss_yy-MM-dd}.log");
 
-                _options.OutputHelper = new TextFileOutputHelper(logFile);
-            }
+            Directory.CreateDirectory(logDir);
 
-            AssertSingleInstance();
+            _options.OutputHelper = new TextFileOutputHelper(logFile);
+        }
 
-            _connection = new MongoDBConnection(
-                IPAddress.Loopback,
-                PortManager.GetAvailablePort()
-            );
+        /// <summary>
+        /// Applys event handlers to our process.
+        /// </summary>
+        private void ApplyEventHandler()
+        {
+            _process.OutputDataReceived += OnFetchReadyState;
+            _process.OutputDataReceived += OnOutputDataReceived;
+            _process.ErrorDataReceived += OnErrorDataReceived;
+            _process.Exited += OnExited;
+        }
 
-            var dbPath = Path.Combine(instancePath, "data");
-            Directory.CreateDirectory(dbPath);
-
-            // Use Replace(): Uri cannot be created from UNIX path.
-            var dbPathUri = dbPath.Replace("\\", "/");
-
-            var dbLogLevel = _options.LogVerbosity == LogVerbosity.Quiet
-                ? "--quiet"
-                : _options.LogVerbosity == LogVerbosity.Verbose
-                    ? "--verbose"
-                    : null;
-
-            var args = new[]
-            {
-                $"--bind_ip {_connection.IP}",
-                $"--port {_connection.Port}",
-                $"--dbpath {dbPathUri}",
-                "--noprealloc",
-                "--smallfiles",
-                "--nojournal",
-                $"{dbLogLevel}"
-            };
-
-            _binaryPath = GetBinaryPath();
+        /// <summary>
+        /// Starts a new mongod process with passed arguments.
+        /// </summary>
+        /// <param name="args">mongod start arguments.</param>
+        private void Start(string[] args)
+        {
             var fullPath = Path.Combine(_binaryPath, "mongod");
 
 #if NETSTANDARD1_6
@@ -133,22 +200,14 @@ namespace Amongst
                 SetExecutableBit(fullPath);
 #endif
 
-            _process = new Process
+            _process.StartInfo = new ProcessStartInfo
             {
-                StartInfo = new ProcessStartInfo
-                {
-                    FileName = fullPath,
-                    Arguments = string.Join(" ", args),
-                    UseShellExecute = false,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true
-                }
+                FileName = fullPath,
+                Arguments = string.Join(" ", args),
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
             };
-
-            _process.OutputDataReceived += OnFetchReadyState;
-            _process.OutputDataReceived += OnOutputDataReceived;
-            _process.ErrorDataReceived += OnErrorDataReceived;
-            _process.Exited += OnExited;
 
             _process.Start();
 
@@ -159,127 +218,23 @@ namespace Amongst
 
             const int timeout = 30;
 
-            _manualReset = new ManualResetEventSlim();
             _manualReset.Wait(TimeSpan.FromSeconds(timeout));
 
             if (!_manualReset.IsSet)
                 throw new TimeoutException($"mongod failed to start after {timeout} seconds.");
-
-            _instanceCount++;
         }
 
-        private void AssertSingleInstance()
-        {
-            const string moduleGuid = "9A66C037-5217-4125-82F8-DBB7C6E415AB";
-
-            _mutex = new Mutex(false, $"Global\\{moduleGuid}");
-            if (!_mutex.WaitOne(0)) {
-                _mutex.Dispose();
-
-                if (!_options.AllowMultipleRunners)
-                    throw new MultipleTestRunnerInstancesException("Multiple test runner instances detected.");
-            }
-
-            if (_instanceCount > 1)
-                _options.OutputHelper.WriteLine(
-                    $"[{DateTime.Now}][Warning]: You already spawned {_instanceCount} instances of mongod. " +
-                    "It is recommended to share a MongoDB instance across your tests using a fixture. " +
-                    "You can read more about shared context within xUnit here: https://xunit.github.io/docs/shared-context.html. " +
-                    "If this is intentional, you can igore this Warning.");
-        }
-
-#pragma warning disable CS0162
-        private string GetBinaryPath()
-        {
-#if NETSTANDARD1_6
-            var isWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
-            var isLinux = RuntimeInformation.IsOSPlatform(OSPlatform.Linux);
-            var isOSX = RuntimeInformation.IsOSPlatform(OSPlatform.OSX);
-
-            var osDescription = RuntimeInformation.OSDescription.Trim();
-#elif NET46
-            const bool isWindows = true;
-            const bool isLinux = false;
-            const bool isOSX = false;
-
-            var osDescription = $"{Environment.OSVersion}".Trim();
-#endif
-            string build;
-            if (isWindows)
-                build = BIN_WIN32;
-            else if (isLinux)
-                build = BIN_LINUX;
-            else if (isOSX)
-                build = BIN_OSX;
-            else
-                throw new PlatformNotSupportedException($"Platform {osDescription} is not supported.");
-
-            var prefix = $"[{DateTime.Now}][Info]";
-            _options.OutputHelper.WriteLine(
-                $"{prefix}: Detected {osDescription}. Using {build} binaries.");
-
-            string binPath;
-            if (Directory.Exists(Store.BinaryPath)) {
-                binPath = Store.BinaryPath;
-
-                _options.OutputHelper.WriteLine($"{prefix}: Using cached binary path.");
-            }
-            else {
-                var binSegment = Path.Combine("tools", $"{build}", "bin");
-
-                var homePath = isWindows
-                    ? Environment.GetEnvironmentVariable("USERPROFILE")
-                    : Environment.GetEnvironmentVariable("HOME");
-
-                var searchPaths = new List<string>
-                {
-                    Directory.GetCurrentDirectory(),
-                    Path.Combine(homePath, ".nuget", "packages"),
-                    _options.PackageDirectory
-                }.Where(p => !string.IsNullOrEmpty(p));
-
-                binPath = searchPaths.Select(path =>
-                    FolderSearch.FindDownwards(path, binSegment)
-                    ?? FolderSearch.FindUpwards(path, binSegment)).FirstOrDefault();
-            }
-
-            if (binPath == null)
-                throw new DirectoryNotFoundException(
-                    "MongoDB binarys could not be found. " +
-                    "If you have a custom package path, please specify it using the PackageDirectory option. " +
-                    "If you already specified a custom package directory, double check if it is correct.");
-
-            lock (Sync) {
-                Store.BinaryPath = binPath;
-                Store.Save();
-            }
-
-            _options.OutputHelper.WriteLine($"[{DateTime.Now}][Info]: Full binary path: {binPath}");
-
-            return binPath;
-        }
-#pragma warning restore
-
-#if NETSTANDARD1_6
-        private static void SetExecutableBit(string file)
-        {
-            // Workaround until dotnet core 2.0
-            var p = Process.Start("chmod", $"+x {file}");
-            p.WaitForExit();
-
-            if (p.ExitCode != 0)
-                throw new CouldNotSetExecutableBit($"Could not set executable bit for {file}");
-        }
-
-        private static bool IsUnix()
-        {
-            return RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX);
-        }
-#endif
-
+        /// <summary>
+        /// Kills the mongod process and sets the appropriate state.
+        /// </summary>
         public void Stop()
         {
-            if (_process.HasExited) return;
+            if (_process.HasExited) {
+                if (State != MongoDBInstanceState.Stopped)
+                    State = MongoDBInstanceState.Stopped;
+
+                return;
+            }
 
             State = MongoDBInstanceState.Stopping;
 
@@ -296,6 +251,8 @@ namespace Amongst
             _process?.CancelErrorRead();
             _process?.CancelOutputRead();
         }
+
+        //------------------------------------------------------------------------------------------------------------->
 
         public void Dispose()
         {

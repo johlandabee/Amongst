@@ -11,10 +11,14 @@ namespace Amongst.Helper
         private static readonly object Sync = new object();
         private static readonly List<int> PortsInUse = new List<int>();
 
+        //------------------------------------------------------------------------------------------------------------->
+
         /// <summary>
-        /// TODO
+        /// Receives the next available port in the rage from 27018 to 27118.
+        /// Already used ports will be excluded.
         /// </summary>
-        /// <returns></returns>
+        /// <exception cref="NoPortAvailableException">Throws if there is no port available.</exception>
+        /// <returns>Available port.</returns>
         public static short GetAvailablePort()
         {
             const short begin = 27018;
@@ -49,9 +53,9 @@ namespace Amongst.Helper
         }
 
         /// <summary>
-        /// TODO
+        /// Frees a used port; make it available to <see cref="GetAvailablePort"/>.
         /// </summary>
-        /// <param name="port"></param>
+        /// <param name="port">A used port.</param>
         public static void Free(short port)
         {
             lock (Sync)

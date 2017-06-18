@@ -7,6 +7,8 @@ namespace Amongst
         public IPAddress IP;
         public short Port;
 
+        //------------------------------------------------------------------------------------------------------------->
+
         public MongoDBConnection(IPAddress ip, short port)
         {
             IP = ip;

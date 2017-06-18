@@ -4,14 +4,19 @@ namespace Amongst.Helper
 {
     public class FolderSearch
     {
+
+        private const int DEFAULT_RECURSION_DEPTH = 6;
+
+        //------------------------------------------------------------------------------------------------------------->
+
         /// <summary>
-        /// TODO
+        /// Searches a folder recursively downwards the hierarchy.
         /// </summary>
-        /// <param name="path"></param>
-        /// <param name="pattern"></param>
-        /// <param name="maxRecursion"></param>
-        /// <returns></returns>
-        public static string FindDownwards(string path, string pattern, int maxRecursion = 6)
+        /// <param name="path">Start path.</param>
+        /// <param name="pattern">Search pattern. Can be a path.</param>
+        /// <param name="maxRecursion">The max recursion depth. 6 by default.</param>
+        /// <returns>A valid path or null if there are no results.</returns>
+        public static string FindDownwards(string path, string pattern, int maxRecursion = DEFAULT_RECURSION_DEPTH)
         {
             for (var i = 0; i <= maxRecursion; i++) {
                 try {
@@ -32,13 +37,13 @@ namespace Amongst.Helper
         }
 
         /// <summary>
-        /// TODO
+        /// Searches a folder recursively upwards the hierarchy.
         /// </summary>
-        /// <param name="path"></param>
-        /// <param name="pattern"></param>
-        /// <param name="maxRecursion"></param>
-        /// <returns></returns>
-        public static string FindUpwards(string path, string pattern, int maxRecursion = 6)
+        /// <param name="path">Start path.</param>
+        /// <param name="pattern">Serach pattern. Can be a path.</param>
+        /// <param name="maxRecursion">The maximum recursion depth. 6 by default</param>
+        /// <returns>A valid path or null if there are no results.</returns>
+        public static string FindUpwards(string path, string pattern, int maxRecursion = DEFAULT_RECURSION_DEPTH)
         {
             return FindUpwards(path, pattern, 0, maxRecursion);
         }

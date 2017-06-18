@@ -8,13 +8,14 @@ namespace Amongst
     public partial class MongoDBInstance
     {
         /// <summary>
-        /// TODO
+        /// Import data using native mongoimport functionality.
+        /// This is tied to the current instance of mongod.
         /// </summary>
-        /// <param name="database"></param>
-        /// <param name="collection"></param>
-        /// <param name="filePath"></param>
-        /// <param name="dropCollection"></param>
-        /// <param name="timeout"></param>
+        /// <param name="database">Database name.</param>
+        /// <param name="collection">Collection name.</param>
+        /// <param name="filePath">File to import.</param>
+        /// <param name="dropCollection">Drop existing collections?</param>
+        /// <param name="timeout">Failure timeout. 5000ms by default.</param>
         public void Import(string database, string collection, string filePath, bool dropCollection = true,
             int timeout = 5000)
         {
@@ -27,7 +28,7 @@ namespace Amongst
             if (IsUnix())
                 SetExecutableBit(fullPath);
 #endif
-
+            // mongoimport wants a UNIX path.
             filePath = filePath.Replace("\\", "/");
 
             var drop = dropCollection ? "--drop" : null;
@@ -78,12 +79,13 @@ namespace Amongst
         }
 
         /// <summary>
-        /// TODO
+        /// Export data using native mongoexport functionality.
+        /// This is tied to the current instance of mongod.
         /// </summary>
-        /// <param name="database"></param>
-        /// <param name="collection"></param>
-        /// <param name="filePath"></param>
-        /// <param name="timeout"></param>
+        /// <param name="database">Database name.</param>
+        /// <param name="collection">Collection name.</param>
+        /// <param name="filePath">Export destination.</param>
+        /// <param name="timeout">Failure timeout. 5000ms by default.</param>
         public void Export(string database, string collection, string filePath, int timeout = 5000)
         {
             var fullPath = Path.Combine(_binaryPath, "mongoexport");
@@ -92,6 +94,7 @@ namespace Amongst
             if (IsUnix())
                 SetExecutableBit(fullPath);
 #endif
+            // mongoexpot wants a UNIX path.
             filePath = filePath.Replace("\\", "/");
 
             var logVerbosity = _options.LogVerbosity == LogVerbosity.Quiet

@@ -11,6 +11,8 @@ namespace Amongst
         public DateTime LastRun;
     }
 
+    //------------------------------------------------------------------------------------------------------------->
+
     public class Store
     {
         public string BinaryPath;
