@@ -7,8 +7,8 @@ namespace Amongst
 {
     public class Persistence
     {
-        public Guid Id;
-        public DateTime LastRun;
+        public Guid Id { get; set; }
+        public DateTime LastRun { get; set; }
     }
 
     //------------------------------------------------------------------------------------------------------------->
@@ -26,7 +26,9 @@ namespace Amongst
         {
             var storeFilePath = Path.Combine(instancesPath, STORE_FILE);
 
-            if (!File.Exists(storeFilePath)) return;
+            if (!File.Exists(storeFilePath)) {
+                return;
+            }
 
             using (var file = File.OpenText(storeFilePath)) {
                 var store = (Store) JsonSerializer.Create().Deserialize(file, typeof(Store));

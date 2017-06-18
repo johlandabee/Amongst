@@ -18,7 +18,9 @@ namespace Amongst
             const string pattern = "waiting for connections on port";
 
             var process = sender as Process;
-            if (string.IsNullOrEmpty(e.Data) || !e.Data.Contains(pattern)) return;
+            if (string.IsNullOrEmpty(e.Data) || !e.Data.Contains(pattern)) {
+                return;
+            }
 
             State = MongoDBInstanceState.Running;
 
@@ -36,7 +38,9 @@ namespace Amongst
         private void OnOutputDataReceived(object sender, DataReceivedEventArgs e)
         {
             var process = sender as Process;
-            if (string.IsNullOrEmpty(e.Data)) return;
+            if (string.IsNullOrEmpty(e.Data)) {
+                return;
+            }
 
             var pidAndName = process.HasExited ? null : $"[{process.ProcessName}:{process.Id}]";
 
@@ -52,7 +56,9 @@ namespace Amongst
         private void OnErrorDataReceived(object sender, DataReceivedEventArgs e)
         {
             var process = sender as Process;
-            if (string.IsNullOrEmpty(e.Data)) return;
+            if (string.IsNullOrEmpty(e.Data)) {
+                return;
+            }
 
             var pidAndName = process.HasExited ? null : $"[{process.ProcessName}:{process.Id}]";
 

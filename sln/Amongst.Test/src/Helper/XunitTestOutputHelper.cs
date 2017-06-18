@@ -1,4 +1,5 @@
-﻿using Xunit.Abstractions;
+﻿using System;
+using Xunit.Abstractions;
 using Amongst.Output;
 
 namespace Amongst.Test.Helper
@@ -22,6 +23,15 @@ namespace Amongst.Test.Helper
             _output.WriteLine(format, args);
         }
 
-        public void Dispose() { }
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            // Nothing to dispose here.
+        }
     }
 }
