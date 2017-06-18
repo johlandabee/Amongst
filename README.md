@@ -1,6 +1,7 @@
 # Amongst - MongoDB (Integration) Testing!
-**Windows:** [![Build status](https://ci.appveyor.com/api/projects/status/github/Johlandabee/Amongst?branch=develop&svg=true)](https://ci.appveyor.com/project/Johlandabee/amongst)
-**Linux:** [![Build Status](https://travis-ci.org/Johlandabee/Amongst.svg?branch=develop)](https://travis-ci.org/Johlandabee/Amongst)
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/f3dbbcc1c0a94916985614f630e0f826)](https://www.codacy.com/app/Johlandabee/Amongst?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=Johlandabee/Amongst&amp;utm_campaign=Badge_Grade)
+[![Windows build status](https://ci.appveyor.com/api/projects/status/github/Johlandabee/Amongst?branch=develop&svg=true)](https://ci.appveyor.com/project/Johlandabee/amongst)
+[![Linux build Status](https://travis-ci.org/Johlandabee/Amongst.svg?branch=develop)](https://travis-ci.org/Johlandabee/Amongst)
 
 Amongst provides isolated MongoDB instances on **Windows**, **Linux** and **OSX** within your C# unit tests.  
 It does so by wrapping around current **MongoDB 3.4.4** binaries while targeting **.NET 4.6** and **.NET Standard 1.6**.  
