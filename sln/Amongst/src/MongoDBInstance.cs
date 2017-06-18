@@ -107,7 +107,7 @@ namespace Amongst
 
             lock (Sync) {
                 _instanceCount++;
-            }  
+            }
         }
 
         /// <summary>
@@ -153,8 +153,9 @@ namespace Amongst
 
             if (_options.Persist) {
                 lock (Sync) {
-                    if (Store.Persistence.Id == Guid.Empty)
+                    if (Store.Persistence.Id == Guid.Empty) {
                         Store.Persistence.Id = Guid.NewGuid();
+                    }
 
                     Store.Persistence.LastRun = DateTime.Now;
                     Store.Save(_instancesPath);
