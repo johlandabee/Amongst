@@ -17,10 +17,15 @@ namespace Amongst
     {
         private const string STORE_FILE = "store.json";
 
-        public string BinaryPath;
-        public Persistence Persistence = new Persistence();
+        public string BinaryPath { get; set; }
+        public Persistence Persistence { get; set; }
 
         //------------------------------------------------------------------------------------------------------------->
+
+        public Store()
+        {
+            Persistence = new Persistence();
+        }
 
         public void Load(string instancesPath)
         {

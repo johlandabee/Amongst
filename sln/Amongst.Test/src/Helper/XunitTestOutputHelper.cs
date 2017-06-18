@@ -8,6 +8,8 @@ namespace Amongst.Test.Helper
     {
         private readonly ITestOutputHelper _output;
 
+        //------------------------------------------------------------------------------------------------------------->
+
         public XunitTestOutputHelper(ITestOutputHelper output)
         {
             _output = output;
@@ -23,7 +25,9 @@ namespace Amongst.Test.Helper
             _output.WriteLine(format, args);
         }
 
-        public void Dispose()
+        //------------------------------------------------------------------------------------------------------------->
+
+        void IDisposable.Dispose()
         {
             Dispose(true);
             GC.SuppressFinalize(this);

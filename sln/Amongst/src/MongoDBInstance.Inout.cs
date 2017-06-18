@@ -48,14 +48,16 @@ namespace Amongst
         public void Import(string database, string collection, string filePath, bool dropCollection,
             int timeout)
         {
-            if (!File.Exists(filePath))
+            if (!File.Exists(filePath)) {
                 throw new FileNotFoundException($"Could not import file {filePath}.");
+            }
 
             var fullPath = Path.Combine(_binaryPath, "mongoimport");
 
 #if NETSTANDARD1_6
-            if (IsUnix())
+            if (IsUnix()) {
                 SetExecutableBit(fullPath);
+            }
 #endif
             // mongoimport wants a UNIX path.
             var unixFilePath = filePath.Replace("\\", "/");
@@ -95,16 +97,19 @@ namespace Amongst
             p.Start();
 
             var exited = p.WaitForExit(timeout);
-            if (!exited)
+            if (!exited) {
                 throw new TimeoutException(
                     $"Mongoimport failed to import {unixFilePath} to {database}/{collection} after {timeout} milliseconds.");
+            }
 
-            if (p.ExitCode != 0)
+            if (p.ExitCode != 0) {
                 throw new ExitCodeException(
                     $"Mongoimport failed to import {unixFilePath} to {database}/{collection}. Exit code {p.ExitCode}.");
+            }
 
-            if (_options.Verbosity > LogVerbosity.Normal)
+            if (_options.Verbosity > LogVerbosity.Normal) {
                 _options.OutputHelper.WriteLine($"Successfully imported {unixFilePath} to {database}/{collection}");
+            }
         }
 
         /// <summary>
@@ -131,8 +136,9 @@ namespace Amongst
             var fullPath = Path.Combine(_binaryPath, "mongoexport");
 
 #if NETSTANDARD1_6
-            if (IsUnix())
+            if (IsUnix()) {
                 SetExecutableBit(fullPath);
+            }
 #endif
             // mongoexpot wants a UNIX path.
             var unixFilePath = filePath.Replace("\\", "/");
@@ -170,16 +176,19 @@ namespace Amongst
             p.Start();
 
             var exited = p.WaitForExit(timeout);
-            if (!exited)
+            if (!exited) {
                 throw new TimeoutException(
                     $"Mongoexport failed to export {database}/{collection} to {unixFilePath} after {timeout} milliseconds.");
+            }
 
-            if (p.ExitCode != 0)
+            if (p.ExitCode != 0) {
                 throw new ExitCodeException(
                     $"Mongoexport failed to export {database}/{collection} to {unixFilePath}. Exit code {p.ExitCode}.");
+            }
 
-            if (_options.Verbosity > LogVerbosity.Normal)
+            if (_options.Verbosity > LogVerbosity.Normal) {
                 _options.OutputHelper.WriteLine($"Successfully exported {database}/{collection} to {unixFilePath}");
+            }
         }
     }
 }
