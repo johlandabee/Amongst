@@ -83,7 +83,7 @@ namespace Amongst
 
             lock (Sync) {
                 Store.BinaryPath = binPath;
-                Store.Save();
+                Store.Save(_instancesPath);
             }
 
             _options.OutputHelper.WriteLine($"[{DateTime.Now}][Info]: Full binary path: {binPath}");
