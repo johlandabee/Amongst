@@ -15,20 +15,20 @@ namespace Amongst
 
     public class Store
     {
+        private const string STORE_FILE = "store.json";
+
         public string BinaryPath;
         public Persistence Persistence = new Persistence();
-        private readonly string _storeFilePath;
 
-        public Store()
+        //------------------------------------------------------------------------------------------------------------->
+
+        public void Load(string instancesPath)
         {
-            _storeFilePath = Path.Combine(Directory.GetCurrentDirectory(), "instances", "store.json");
-        }
+            var storeFilePath = Path.Combine(instancesPath, STORE_FILE);
 
-        public void Load()
-        {
-            if (!File.Exists(_storeFilePath)) return;
+            if (!File.Exists(storeFilePath)) return;
 
-            using (var file = File.OpenText(_storeFilePath)) {
+            using (var file = File.OpenText(storeFilePath)) {
                 var store = (Store) JsonSerializer.Create().Deserialize(file, typeof(Store));
 
                 Persistence = store.Persistence;
@@ -36,9 +36,11 @@ namespace Amongst
             }
         }
 
-        public void Save()
+        public void Save(string instancesPath)
         {
-            using (var file = File.CreateText(_storeFilePath)) {
+            var storeFilePath = Path.Combine(instancesPath, STORE_FILE);
+
+            using (var file = File.CreateText(storeFilePath)) {
                 JsonSerializer.Create(new JsonSerializerSettings
                 {
                     Formatting = Formatting.Indented,

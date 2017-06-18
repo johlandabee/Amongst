@@ -16,7 +16,9 @@ namespace Amongst
         private static int _instanceCount;
         private static readonly Store Store = new Store();
 
+        private readonly string _instancesPath;
         private readonly string _binaryPath;
+
         private readonly MongoDBInstanceOptions _options;
         private readonly MongoDBConnection _connection;
         private readonly Process _process;
@@ -66,6 +68,9 @@ namespace Amongst
 
             AssertSingleRunner();
 
+            _instancesPath = Path.Combine(Directory.GetCurrentDirectory(), "instances");
+            Prepare();
+
             _process = new Process();
             _manualReset = new ManualResetEventSlim();
             _binaryPath = GetBinaryPath();
@@ -73,8 +78,8 @@ namespace Amongst
                 IPAddress.Loopback,
                 PortManager.GetAvailablePort()
             );
-
-            var instancePath = Prepare();
+         
+            var instancePath = Path.Combine(_instancesPath, $"{Id:N}");
             var dbPath = Path.Combine(instancePath, "data");
 
             Directory.CreateDirectory(dbPath);
@@ -129,12 +134,17 @@ namespace Amongst
 
         /// <summary>
         /// Sets a new id or uses the last one known if persistence is enabled.
-        /// Also deletes the instances directory if CleanBeforerRun is set to true. 
+        /// Also creates the instances directory and purges it if CleanBeforerRun is set to true. 
         /// </summary>
         /// <returns>Path to the current instance data direcory.</returns>
-        private string Prepare()
+        private void Prepare()
         {
-            lock (Sync) Store.Load();
+            if (_options.CleanBeforeRun && !_options.Persist)
+                Directory.Delete(_instancesPath, true);
+
+            Directory.CreateDirectory(_instancesPath);
+
+            lock (Sync) Store.Load(_instancesPath);
 
             if (_options.Persist) {
                 lock (Sync) {
@@ -142,7 +152,7 @@ namespace Amongst
                         Store.Persistence.Id = Guid.NewGuid();
 
                     Store.Persistence.LastRun = DateTime.Now;
-                    Store.Save();
+                    Store.Save(_instancesPath);
                 }
 
                 Id = Store.Persistence.Id;
@@ -152,12 +162,6 @@ namespace Amongst
             else {
                 Id = Guid.NewGuid();
             }
-
-            var instancesPath = Path.Combine(Directory.GetCurrentDirectory(), "instances");
-            if (_options.CleanBeforeRun && !_options.Persist)
-                Directory.Delete(instancesPath, true);
-
-            return Path.Combine(instancesPath, $"{Id:N}");
         }
 
         /// <summary>
