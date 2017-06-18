@@ -10,25 +10,28 @@ namespace Amongst.Output
 
         public TextFileOutputHelper(string path)
         {
-            lock (_sync)
+            lock (_sync) {
                 _writer = new StreamWriter(File.Create(path));
+            }
         }
 
         public void WriteLine(string message)
         {
-            lock (_sync)
+            lock (_sync) {
                 _writer.WriteLine(message);
+            }
         }
 
         public void WriteLine(string format, params object[] args)
         {
-            lock (_sync)
+            lock (_sync) {
                 _writer.WriteLine(format, args);
+            }
         }
 
         //------------------------------------------------------------------------------------------------------------->
 
-        public void Dispose()
+        void IDisposable.Dispose()
         {
             Dispose(true);
             GC.SuppressFinalize(this);
@@ -36,9 +39,9 @@ namespace Amongst.Output
 
         protected virtual void Dispose(bool disposing)
         {
-            if (!disposing) return;
-
-            _writer.Dispose();
+            if (disposing) {
+                _writer.Dispose();
+            }
         }
     }
 }

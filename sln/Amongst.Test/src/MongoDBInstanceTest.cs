@@ -26,7 +26,7 @@ namespace Amongst.Test
         {
             var instance = MongoDBInstance.Spawn(new MongoDBInstanceOptions
             {
-                LogVerbosity = LogVerbosity.Verbose,
+                Verbosity = LogVerbosity.Verbose,
                 OutputHelper = _output,
                 AllowMultipleRunners = true
             });
@@ -59,7 +59,7 @@ namespace Amongst.Test
 
             Action spawn = () => MongoDBInstance.Spawn(new MongoDBInstanceOptions
             {
-                LogVerbosity = LogVerbosity.Verbose,
+                Verbosity = LogVerbosity.Verbose,
                 OutputHelper = _output,
                 AllowMultipleRunners = true
             });
@@ -74,7 +74,7 @@ namespace Amongst.Test
         {
             var instance = MongoDBInstance.Spawn(new MongoDBInstanceOptions
             {
-                LogVerbosity = LogVerbosity.Verbose,
+                Verbosity = LogVerbosity.Verbose,
                 OutputHelper = _output,
                 AllowMultipleRunners = true
             });
@@ -91,7 +91,7 @@ namespace Amongst.Test
         {
             var instance = MongoDBInstance.Spawn(new MongoDBInstanceOptions
             {
-                LogVerbosity = LogVerbosity.Verbose,
+                Verbosity = LogVerbosity.Verbose,
                 OutputHelper = _output,
                 AllowMultipleRunners = true,
                 Persist = true
@@ -102,7 +102,7 @@ namespace Amongst.Test
 
             instance = MongoDBInstance.Spawn(new MongoDBInstanceOptions
             {
-                LogVerbosity = LogVerbosity.Verbose,
+                Verbosity = LogVerbosity.Verbose,
                 OutputHelper = _output,
                 AllowMultipleRunners = true,
                 Persist = true
@@ -145,7 +145,7 @@ namespace Amongst.Test
         {
             var instance = MongoDBInstance.Spawn(new MongoDBInstanceOptions
             {
-                LogVerbosity = LogVerbosity.Verbose,
+                Verbosity = LogVerbosity.Verbose,
                 OutputHelper = _output,
                 AllowMultipleRunners = true
             });

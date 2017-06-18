@@ -4,8 +4,8 @@ namespace Amongst
 {
     public class MongoDBConnection
     {
-        public IPAddress IP;
-        public short Port;
+        public IPAddress IP { get; }
+        public short Port { get; }
 
         //------------------------------------------------------------------------------------------------------------->
 

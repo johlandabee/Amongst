@@ -37,14 +37,18 @@ namespace Amongst
             var osDescription = $"{Environment.OSVersion}".Trim();
 #endif
             string build;
-            if (isWindows)
+            if (isWindows) {
                 build = BIN_WIN32;
-            else if (isLinux)
+            }
+            else if (isLinux) {
                 build = BIN_LINUX;
-            else if (isOSX)
+            }
+            else if (isOSX) {
                 build = BIN_OSX;
-            else
+            }
+            else {
                 throw new PlatformNotSupportedException($"Platform {osDescription} is not supported.");
+            }
 
             var prefix = $"[{DateTime.Now}][Info]";
             _options.OutputHelper.WriteLine(
@@ -75,11 +79,12 @@ namespace Amongst
                     ?? FolderSearch.FindUpwards(path, binSegment)).FirstOrDefault();
             }
 
-            if (binPath == null)
+            if (binPath == null) {
                 throw new DirectoryNotFoundException(
                     "MongoDB binarys could not be found. " +
                     "If you have a custom package path, please specify it using the PackageDirectory option. " +
                     "If you already specified a custom package directory, double check if it is correct.");
+            }
 
             lock (Sync) {
                 Store.BinaryPath = binPath;

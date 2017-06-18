@@ -6,7 +6,7 @@ using Amongst.Exception;
 
 namespace Amongst.Helper
 {
-    public class PortManager
+    public static class PortManager
     {
         private static readonly object Sync = new object();
         private static readonly List<int> PortsInUse = new List<int>();
@@ -42,12 +42,14 @@ namespace Amongst.Helper
                     return true;
                 });
 
-            if (port < begin)
+            if (port < begin) {
                 throw new NoPortAvailableException(
                     $"Counld not spawn a new mongod instance. No port available within the range {begin}-{begin + count}");
+            }
 
-            lock (Sync)
+            lock (Sync) {
                 PortsInUse.Add(port);
+            }
 
             return port;
         }
@@ -58,8 +60,9 @@ namespace Amongst.Helper
         /// <param name="port">A used port.</param>
         public static void Free(short port)
         {
-            lock (Sync)
+            lock (Sync) {
                 PortsInUse.Remove(port);
+            }  
         }
     }
 }
