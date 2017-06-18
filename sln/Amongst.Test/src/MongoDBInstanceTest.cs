@@ -110,36 +110,6 @@ namespace Amongst.Test
             instance.Stop();
         }
 
-        //[Fact]
-        //public void Import_Should_Import_Dataset_From_Json_File()
-        //{
-        //    var instance = MongoDBInstance.Spawn(new MongoDBInstanceOptions
-        //    {
-        //        LogVerbosity = LogVerbosity.Verbose,
-        //        OutputHelper = _output
-        //    });
-
-        //    var client = new MongoClient(instance.ConnectionString);
-        //    var filePath = Path.GetFullPath("../../../import/restaurants.json");
-
-        //    const string dbName = "unit-test";
-        //    const string dbCollection = "restaurants";
-
-        //    instance.Import(dbName, dbCollection, filePath);
-
-        //    var db = client.GetDatabase(dbName);
-        //    var collection = db.GetCollection<BsonDocument>(dbCollection);
-
-        //    var restaurants = collection.Find(_ => true).ToList();
-
-        //    var compare = File.ReadAllLines(filePath).Select(BsonDocument.Parse).ToList();
-        //    compare.ForEach(_ => _.Remove());
-
-        //    restaurants.Should().Contain(compare);
-
-        //    instance.Stop();
-        //}
-
         [Fact]
         public void Stop_Should_Stop_The_Current_Instance()
         {

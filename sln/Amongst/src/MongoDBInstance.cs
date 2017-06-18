@@ -13,7 +13,7 @@ namespace Amongst
     {
         private static readonly object Sync = new object();
 
-        private static int _instanceCount = 0;
+        private static int _instanceCount;
         private static readonly Store Store = new Store();
 
         private readonly string _instancesPath;
@@ -243,9 +243,7 @@ namespace Amongst
         public void Stop()
         {
             if (_process.HasExited) {
-                if (State != MongoDBInstanceState.Stopped) {
-                    State = MongoDBInstanceState.Stopped;
-                }
+                State = MongoDBInstanceState.Stopped;
 
                 return;
             }
