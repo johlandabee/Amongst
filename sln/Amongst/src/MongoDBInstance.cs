@@ -38,7 +38,7 @@ namespace Amongst
         /// <returns><see cref="MongoDBInstance"/></returns>
         public static MongoDBInstance Spawn()
         {
-            return new MongoDBInstance(new MongoDBInstanceOptions
+            return Spawn(new MongoDBInstanceOptions
             {
                 Verbosity = LogVerbosity.Normal,
                 OutputHelper = null,
@@ -55,14 +55,15 @@ namespace Amongst
         /// <returns><see cref="MongoDBInstance"/></returns>
         public static MongoDBInstance Spawn(MongoDBInstanceOptions options)
         {
-            return new MongoDBInstance(options);
+            return new MongoDBInstance(options, new PortManager());
         }
 
         /// <summary>
         /// Default constructor.
         /// </summary>
         /// <param name="options"><see cref="MongoDBInstanceOptions"/></param>
-        private MongoDBInstance(MongoDBInstanceOptions options)
+        /// <param name="portManager"><see cref="PortManager"/></param>
+        public MongoDBInstance(MongoDBInstanceOptions options, IPortManager portManager)
         {
             _options = options;
 
@@ -76,7 +77,7 @@ namespace Amongst
             _binaryPath = GetBinaryPath();
             _connection = new MongoDBConnection(
                 IPAddress.Loopback,
-                PortManager.GetAvailablePort()
+                (short) portManager.GetAvailablePort()
             );
 
             var instancePath = Path.Combine(_instancesPath, $"{Id:N}");

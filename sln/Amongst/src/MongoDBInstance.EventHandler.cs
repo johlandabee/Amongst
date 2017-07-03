@@ -75,8 +75,6 @@ namespace Amongst
         {
             State = MongoDBInstanceState.Stopped;
 
-            PortManager.Free(_connection.Port);
-
             var process = sender as Process;
             var prefix = $"[{DateTime.Now}][Info][{Id:N}]";
 

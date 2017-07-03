@@ -2,7 +2,7 @@
 using Xunit.Abstractions;
 using Amongst.Output;
 
-namespace Amongst.Test.Helper
+namespace Amongst.Test
 {
     internal class XunitTestOutputHelper : IMongoDBInstanceOutputHelper
     {
