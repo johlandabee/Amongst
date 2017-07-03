@@ -1,5 +1,4 @@
 using System;
-using System.IO;
 using System.Collections.Generic;
 using Amongst.Test.Helper;
 using Xunit;
@@ -9,6 +8,7 @@ using MongoDB.Driver;
 using System.Net;
 using System.Net.Sockets;
 using Amongst.Exception;
+using MongoDB.Bson;
 
 namespace Amongst.Test
 {
@@ -37,54 +37,8 @@ namespace Amongst.Test
 
             instance.Stop();
         }
-
-        [Fact]
-        public void Spawn_Should_Throw_NoPortAvailableException()
-        {
-            const short begin = 27018;
-            const short end = begin + 100;
-
-            var listeners = new List<TcpListener>();
-            for (var i = begin; i < end; i++) {
-                var l = new TcpListener(IPAddress.Loopback, i);
-
-                try {
-                    l.Start();
-                    listeners.Add(l);
-                }
-                catch (SocketException) {
-                    _output.WriteLine($"[Info][XUnit]: Port {i} is unavailable.");
-                }
-            }
-
-            Action spawn = () => MongoDBInstance.Spawn(new MongoDBInstanceOptions
-            {
-                Verbosity = LogVerbosity.Verbose,
-                OutputHelper = _output,
-                AllowMultipleRunners = true
-            });
-
-            spawn.ShouldThrow<NoPortAvailableException>();
-
-            listeners.ForEach(l => l.Stop());
-        }
-
-        [Fact]
-        public void ConnectionString_Should_Be_Valid()
-        {
-            var instance = MongoDBInstance.Spawn(new MongoDBInstanceOptions
-            {
-                Verbosity = LogVerbosity.Verbose,
-                OutputHelper = _output,
-                AllowMultipleRunners = true
-            });
-
-            instance.ConnectionString.Should().MatchRegex(@"^mongodb:\/\/127\.0\.0\.1:[0-9]{5}\/$");
-
-            new MongoClient(instance.ConnectionString).Should().NotBeNull();
-
-            instance.Stop();
-        }
+        
+        // TODO: ConncetionString test
 
         [Fact]
         public void Insatnce_Should_Be_Persistent()
@@ -96,6 +50,7 @@ namespace Amongst.Test
                 AllowMultipleRunners = true,
                 Persist = true
             });
+
             instance.Stop();
 
             // TODO
