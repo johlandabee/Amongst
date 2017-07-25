@@ -77,8 +77,10 @@ namespace Amongst
             _binaryPath = GetBinaryPath();
             _connection = new MongoDBConnection(
                 IPAddress.Loopback,
-                (short) portManager.GetAvailablePort()
+                portManager.GetAvailablePort()
             );
+            
+            options.OutputHelper.WriteLine($"[{DateTime.Now}][Info]: Using port {_connection.Port}");
 
             var instancePath = Path.Combine(_instancesPath, $"{Id:N}");
             var dbPath = Path.Combine(instancePath, "data");

@@ -1,5 +1,4 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <TargetFrameworks>netstandard1.6;net46</TargetFrameworks>
     <Authors>Steven Wobser</Authors>
@@ -13,16 +12,13 @@
     <RepositoryType>git</RepositoryType>
     <PackageTags>MongoDB;XUnit;Test;Runner;Integration</PackageTags>
   </PropertyGroup>
-
   <ItemGroup>
-    <PackageReference Include="Newtonsoft.Json" Version="10.0.2" />
+    <PackageReference Include="Newtonsoft.Json" Version="10.0.3" />
     <PackageReference Include="System.Diagnostics.Process" Version="4.3.0" />
     <PackageReference Include="System.Runtime.InteropServices" Version="4.3.0" />
     <PackageReference Include="System.Threading.Thread" Version="4.3.0" />
   </ItemGroup>
-
   <ItemGroup>
     <None Include="..\..\tools\**" Pack="True" PackagePath="tools\" />
   </ItemGroup>
-  
 </Project>

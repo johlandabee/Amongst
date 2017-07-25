@@ -31,13 +31,13 @@ namespace Amongst.Helper
         /// <returns>Available port.</returns>
         public int GetAvailablePort()
         {
+            int port;
+
             try
             {
                 _tcpListener.Start();
 
-                var port = _tcpListener.LocalEndpoint().Port;
-
-                return port;
+                port = _tcpListener.LocalEndpoint().Port;
             }
             catch (SocketException)
             {
@@ -48,6 +48,8 @@ namespace Amongst.Helper
             {
                 _tcpListener.Stop();
             }
+
+            return port;
         }
     }
 }

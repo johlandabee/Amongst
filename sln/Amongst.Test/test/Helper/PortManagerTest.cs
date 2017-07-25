@@ -32,8 +32,8 @@ namespace Amongst.Test.Helper
 
             var portManager = new PortManager(tcpListener.Object);
 
-            Action invoke = () => { portManager.GetAvailablePort(); };
-            invoke.ShouldThrow<NoPortAvailableException>();
+            Action action = () => { portManager.GetAvailablePort(); };
+            action.ShouldThrow<NoPortAvailableException>();
         }
     }
 }
