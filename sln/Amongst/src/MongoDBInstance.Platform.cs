@@ -14,9 +14,9 @@ namespace Amongst
 {
     public partial class MongoDBInstance
     {
-        private const string BIN_WIN32 = "mongodb-win32-x86_64-2008plus-3.4.4";
-        private const string BIN_LINUX = "mongodb-linux-x86_64-3.4.4";
-        private const string BIN_OSX = "mongodb-osx-x86_64-3.4.4";
+        private const string BIN_WIN32 = "mongodb-win32-x86_64-2008plus-3.4.6";
+        private const string BIN_LINUX = "mongodb-linux-x86_64-3.4.6";
+        private const string BIN_OSX = "mongodb-osx-x86_64-3.4.6";
 
         //------------------------------------------------------------------------------------------------------------->
 
@@ -37,16 +37,20 @@ namespace Amongst
             var osDescription = $"{Environment.OSVersion}".Trim();
 #endif
             string build;
-            if (isWindows) {
+            if (isWindows)
+            {
                 build = BIN_WIN32;
             }
-            else if (isLinux) {
+            else if (isLinux)
+            {
                 build = BIN_LINUX;
             }
-            else if (isOSX) {
+            else if (isOSX)
+            {
                 build = BIN_OSX;
             }
-            else {
+            else
+            {
                 throw new PlatformNotSupportedException($"Platform {osDescription} is not supported.");
             }
 
@@ -55,12 +59,14 @@ namespace Amongst
                 $"{prefix}: Detected {osDescription}. Using {build} binaries.");
 
             string binPath;
-            if (Directory.Exists(Store.BinaryPath)) {
+            if (Directory.Exists(Store.BinaryPath))
+            {
                 binPath = Store.BinaryPath;
 
                 _options.OutputHelper.WriteLine($"{prefix}: Using cached binary path.");
             }
-            else {
+            else
+            {
                 var binSegment = Path.Combine("tools", $"{build}", "bin");
 
                 var homePath = isWindows
@@ -79,14 +85,16 @@ namespace Amongst
                     ?? FolderSearch.FindUpwards(path, binSegment)).FirstOrDefault();
             }
 
-            if (binPath == null) {
+            if (binPath == null)
+            {
                 throw new DirectoryNotFoundException(
                     "MongoDB binarys could not be found. " +
                     "If you have a custom package path, please specify it using the PackageDirectory option. " +
                     "If you already specified a custom package directory, double check if it is correct.");
             }
 
-            lock (Sync) {
+            lock (Sync)
+            {
                 Store.BinaryPath = binPath;
                 Store.Save(_instancesPath);
             }
