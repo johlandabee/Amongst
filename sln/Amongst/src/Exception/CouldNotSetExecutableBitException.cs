@@ -2,6 +2,8 @@ namespace Amongst.Exception
 {
     public class CouldNotSetExecutableBit : System.Exception
     {
-        public CouldNotSetExecutableBit(string message) : base(message) { }
+        public CouldNotSetExecutableBit(string message) : base(message)
+        {
+        }
     }
 }

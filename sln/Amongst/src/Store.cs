@@ -31,11 +31,13 @@ namespace Amongst
         {
             var storeFilePath = Path.Combine(instancesPath, STORE_FILE);
 
-            if (!File.Exists(storeFilePath)) {
+            if (!File.Exists(storeFilePath))
+            {
                 return;
             }
 
-            using (var file = File.OpenText(storeFilePath)) {
+            using (var file = File.OpenText(storeFilePath))
+            {
                 var store = (Store) JsonSerializer.Create().Deserialize(file, typeof(Store));
 
                 Persistence = store.Persistence;
@@ -47,7 +49,8 @@ namespace Amongst
         {
             var storeFilePath = Path.Combine(instancesPath, STORE_FILE);
 
-            using (var file = File.CreateText(storeFilePath)) {
+            using (var file = File.CreateText(storeFilePath))
+            {
                 JsonSerializer.Create(new JsonSerializerSettings
                 {
                     Formatting = Formatting.Indented,

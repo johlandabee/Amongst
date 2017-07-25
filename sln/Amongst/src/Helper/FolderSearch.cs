@@ -19,15 +19,19 @@ namespace Amongst.Helper
         {
             var currentDir = path;
 
-            for (var i = 0; i <= maxRecursion; i++) {
-                try {
+            for (var i = 0; i <= maxRecursion; i++)
+            {
+                try
+                {
                     return Directory.GetDirectories(currentDir, pattern)[0];
                 }
-                catch (DirectoryNotFoundException) {
+                catch (DirectoryNotFoundException)
+                {
                     var sections = currentDir.Split(Path.DirectorySeparatorChar);
                     var depth = sections.Length;
 
-                    if (i == maxRecursion || depth <= 1) {
+                    if (i == maxRecursion || depth <= 1)
+                    {
                         return null;
                     }
 
@@ -76,18 +80,23 @@ namespace Amongst.Helper
 
         private static string FindUpwards(string path, string pattern, int depth, int maxRecursion)
         {
-            try {
+            try
+            {
                 return Directory.GetDirectories(path, pattern)[0];
             }
-            catch (DirectoryNotFoundException) {
-                if (depth > maxRecursion) {
+            catch (DirectoryNotFoundException)
+            {
+                if (depth > maxRecursion)
+                {
                     return null;
                 }
 
-                foreach (var subDir in Directory.GetDirectories(path)) {
+                foreach (var subDir in Directory.GetDirectories(path))
+                {
                     var result = FindUpwards(subDir, pattern, depth + 1, maxRecursion);
 
-                    if (result != null) {
+                    if (result != null)
+                    {
                         return result;
                     }
                 }

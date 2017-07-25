@@ -10,21 +10,24 @@ namespace Amongst.Output
 
         public TextFileOutputHelper(string path)
         {
-            lock (_sync) {
+            lock (_sync)
+            {
                 _writer = new StreamWriter(File.Create(path));
             }
         }
 
         public void WriteLine(string message)
         {
-            lock (_sync) {
+            lock (_sync)
+            {
                 _writer.WriteLine(message);
             }
         }
 
         public void WriteLine(string format, params object[] args)
         {
-            lock (_sync) {
+            lock (_sync)
+            {
                 _writer.WriteLine(format, args);
             }
         }
@@ -39,7 +42,8 @@ namespace Amongst.Output
 
         protected virtual void Dispose(bool disposing)
         {
-            if (disposing) {
+            if (disposing)
+            {
                 _writer.Dispose();
             }
         }

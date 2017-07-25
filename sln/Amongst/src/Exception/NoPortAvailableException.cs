@@ -2,6 +2,8 @@
 {
     public class NoPortAvailableException : System.Exception
     {
-        public NoPortAvailableException(string message) : base(message) { }
+        public NoPortAvailableException(string message) : base(message)
+        {
+        }
     }
 }

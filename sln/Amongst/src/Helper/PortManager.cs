@@ -31,18 +31,21 @@ namespace Amongst.Helper
         /// <returns>Available port.</returns>
         public int GetAvailablePort()
         {
-            try {
+            try
+            {
                 _tcpListener.Start();
 
                 var port = _tcpListener.LocalEndpoint().Port;
 
                 return port;
             }
-            catch (SocketException) {
+            catch (SocketException)
+            {
                 throw new NoPortAvailableException(
                     "Counld not spawn a new mongod instance. No port available.");
             }
-            finally {
+            finally
+            {
                 _tcpListener.Stop();
             }
         }

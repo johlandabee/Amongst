@@ -18,7 +18,8 @@ namespace Amongst
             const string pattern = "waiting for connections on port";
 
             var process = sender as Process;
-            if (string.IsNullOrEmpty(e.Data) || !e.Data.Contains(pattern)) {
+            if (string.IsNullOrEmpty(e.Data) || !e.Data.Contains(pattern))
+            {
                 return;
             }
 
@@ -38,7 +39,8 @@ namespace Amongst
         private void OnOutputDataReceived(object sender, DataReceivedEventArgs e)
         {
             var process = sender as Process;
-            if (string.IsNullOrEmpty(e.Data)) {
+            if (string.IsNullOrEmpty(e.Data))
+            {
                 return;
             }
 
@@ -56,7 +58,8 @@ namespace Amongst
         private void OnErrorDataReceived(object sender, DataReceivedEventArgs e)
         {
             var process = sender as Process;
-            if (string.IsNullOrEmpty(e.Data)) {
+            if (string.IsNullOrEmpty(e.Data))
+            {
                 return;
             }
 

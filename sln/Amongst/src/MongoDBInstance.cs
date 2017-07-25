@@ -106,7 +106,8 @@ namespace Amongst
                 $"{dbLogLevel}"
             });
 
-            lock (Sync) {
+            lock (Sync)
+            {
                 _instanceCount++;
             }
         }
@@ -120,13 +121,16 @@ namespace Amongst
             const string moduleGuid = "9A66C037-5217-4125-82F8-DBB7C6E415AB";
 
             _mutex = new Mutex(false, $"Global\\{moduleGuid}");
-            if (!_mutex.WaitOne(0)) {
-                if (!_options.AllowMultipleRunners) {
+            if (!_mutex.WaitOne(0))
+            {
+                if (!_options.AllowMultipleRunners)
+                {
                     throw new MultipleTestRunnerInstancesException("Multiple test runner instances detected.");
                 }
             }
 
-            if (_instanceCount > 1) {
+            if (_instanceCount > 1)
+            {
                 _options.OutputHelper.WriteLine(
                     $"[{DateTime.Now}][Warning]: You already spawned {_instanceCount} instances of mongod. " +
                     "It is recommended to share a MongoDB instance across your tests using a fixture. " +
@@ -142,19 +146,24 @@ namespace Amongst
         /// <returns>Path to the current instance data direcory.</returns>
         private void Prepare()
         {
-            if (_options.CleanBeforeRun && !_options.Persist) {
+            if (_options.CleanBeforeRun && !_options.Persist)
+            {
                 Directory.Delete(_instancesPath, true);
             }
 
             Directory.CreateDirectory(_instancesPath);
 
-            lock (Sync) {
+            lock (Sync)
+            {
                 Store.Load(_instancesPath);
             }
 
-            if (_options.Persist) {
-                lock (Sync) {
-                    if (Store.Persistence.Id == Guid.Empty) {
+            if (_options.Persist)
+            {
+                lock (Sync)
+                {
+                    if (Store.Persistence.Id == Guid.Empty)
+                    {
                         Store.Persistence.Id = Guid.NewGuid();
                     }
 
@@ -166,7 +175,8 @@ namespace Amongst
 
                 _options.OutputHelper.WriteLine($"[{DateTime.Now}][Info]: Persistence enabled. Instance id = {Id}");
             }
-            else {
+            else
+            {
                 Id = Guid.NewGuid();
             }
         }
@@ -177,7 +187,8 @@ namespace Amongst
         /// <param name="instancePath">The data path of the current instance.</param>
         private void ApplyDefaultOutputHelper(string instancePath)
         {
-            if (_options.OutputHelper != null) {
+            if (_options.OutputHelper != null)
+            {
                 return;
             }
 
@@ -209,7 +220,8 @@ namespace Amongst
             var fullPath = Path.Combine(_binaryPath, "mongod");
 
 #if NETSTANDARD1_6
-            if (IsUnix()) {
+            if (IsUnix())
+            {
                 SetExecutableBit(fullPath);
             }
 #endif
@@ -234,7 +246,8 @@ namespace Amongst
 
             _manualReset.Wait(TimeSpan.FromSeconds(timeout));
 
-            if (!_manualReset.IsSet) {
+            if (!_manualReset.IsSet)
+            {
                 throw new TimeoutException($"mongod failed to start after {timeout} seconds.");
             }
         }
@@ -244,7 +257,8 @@ namespace Amongst
         /// </summary>
         public void Stop()
         {
-            if (_process.HasExited) {
+            if (_process.HasExited)
+            {
                 State = MongoDBInstanceState.Stopped;
 
                 return;
@@ -257,7 +271,8 @@ namespace Amongst
             const int timeout = 5000;
             var exited = _process.WaitForExit(timeout);
 
-            if (!exited) {
+            if (!exited)
+            {
                 throw new TimeoutException($"Failed to stop mongod after {timeout} milliseconds.");
             }
 
@@ -276,14 +291,16 @@ namespace Amongst
             Dispose(true);
             GC.SuppressFinalize(this);
 
-            lock (Sync) {
+            lock (Sync)
+            {
                 _instanceCount--;
             }
         }
 
         protected virtual void Dispose(bool disposing)
         {
-            if (disposing) {
+            if (disposing)
+            {
                 _options.OutputHelper.Dispose();
                 _mutex.Dispose();
             }
