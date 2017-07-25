@@ -37,7 +37,7 @@ namespace Amongst.Test
 
             instance.Stop();
         }
-        
+
         // TODO: ConncetionString test
 
         [Fact]
